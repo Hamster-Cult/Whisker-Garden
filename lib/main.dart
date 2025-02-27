@@ -13,7 +13,9 @@ class MainApp extends StatelessWidget {
       title: 'Whisker Garden',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.grey, brightness: Brightness.light),
+          seedColor: Colors.grey,
+          brightness: Brightness.light,
+        ),
         textTheme: TextTheme(
           displayLarge: const TextStyle(
             fontSize: 60,
@@ -64,13 +66,21 @@ class _HomePageState extends State<HomePage> {
             extended: false,
             destinations: [
               NavigationRailDestination(
-                  icon: Icon(Icons.home), label: Text('Title')),
+                icon: Icon(Icons.home),
+                label: Text('Title'),
+              ),
               NavigationRailDestination(
-                  icon: Icon(Icons.favorite), label: Text('Landing')),
+                icon: Icon(Icons.favorite),
+                label: Text('Landing'),
+              ),
               NavigationRailDestination(
-                  icon: Icon(Icons.favorite), label: Text('Garden')),
+                icon: Icon(Icons.favorite),
+                label: Text('Garden'),
+              ),
               NavigationRailDestination(
-                  icon: Icon(Icons.favorite), label: Text('Today')),
+                icon: Icon(Icons.favorite),
+                label: Text('Today'),
+              ),
             ],
             selectedIndex: selectedIndex,
             onDestinationSelected: (value) {
@@ -103,8 +113,8 @@ class LandingPage extends StatelessWidget {
     return Column(
       children: [
         Stack(
-            //put current plant image and cat animation ontop(?)
-            ),
+          //put current plant image and cat animation ontop(?)
+        ),
         // put level bar here
 
         // needs to be updated based on whether the user has logged mood or not
@@ -155,15 +165,19 @@ class MoodLoggingPage extends StatelessWidget {
                 const Text(
                   '20 February 2025',
                   style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 30,
-                      color: Colors.black),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 30,
+                    color: Colors.black,
+                  ),
                   textAlign: TextAlign.left,
                 ),
                 Text(
                   "Today I am feeling very Lorem ipsum odor amet, consectetuer adipiscing elit. Quam ullamcorper lacinia vehicula ornare lacinia interdum tincidunt cras. Est cras facilisis mauris mattis nascetur. Ligula ipsum bibendum himenaeos sed tortor nec. Cras dapibus ridiculus a nibh ridiculus interdum condimentum cursus. Interdum odio sapien vitae, mattis cursus finibus adipiscing massa. Parturient ac proin magna consequat adipiscing adipiscing fusce.\n\nLigula sem habitasse blandit lacinia eleifend sapien libero dolor cubilia. Cras ad cubilia est at fusce vivamus. Volutpat risus tortor duis enim lacinia per aliquam. Justo eleifend id neque purus; dapibus mus vestibulum et dis. Hac dui sollicitudin; luctus vel finibus rutrum nostra. Tristique dui tristique dapibus commodo turpis dolor placerat etiam. Vestibulum cursus urna facilisis interdum fringilla. Scelerisque egestas pellentesque ipsum nulla sem sapien orci torquent mauris.\n\nMalesuada neque taciti tempus maximus ex duis. Sociosqu fringilla porta mattis mattis in class. Ridiculus dui montes tortor porta sollicitudin. Ad dui odio ultrices elit suscipit. Torquent lacus penatibus eros vel nulla pretium inceptos accumsan cursus. Ex egestas netus ridiculus auctor ligula non aptent. Maximus risus vitae fringilla rhoncus nullam varius. Hendrerit inceptos pretium dis; neque mi consequat. Eleifend maximus quisque aptent urna sagittis tortor. Ornare lacus mi lobortis faucibus, faucibus quis elit faucibus.",
                   style: TextStyle(
-                      fontSize: 25, color: Colors.black, letterSpacing: .6),
+                    fontSize: 25,
+                    color: Colors.black,
+                    letterSpacing: .6,
+                  ),
                   textAlign: TextAlign.left,
                 ),
               ],
@@ -181,7 +195,7 @@ class MoodEntry extends StatelessWidget {
   final DateTime date;
   final String entry;
   const MoodEntry({Key? key, required this.date, required this.entry})
-      : super(key: key);
+    : super(key: key);
   @override
   Widget build(BuildContext context) {
     return const Placeholder();
