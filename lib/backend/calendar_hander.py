@@ -3,6 +3,9 @@ import icalendar
 from icalendar import Calendar
 from pathlib import Path
 
+# This file is used to handle all the calendar related operations
+# The calendar is stored in a .ics file in the assets folder
+
 
 ics_path = Path('./assets/example.ics')
 
