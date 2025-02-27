@@ -1,5 +1,4 @@
 from typing import Union
-from lib.backend import create_db_and_tables
 from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select
