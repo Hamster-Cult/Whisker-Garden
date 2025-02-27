@@ -3,8 +3,8 @@ from lib.backend import create_db_and_tables
 from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select
-from Database.Models.users import User
-from lib.backend import SessionDep
+from Models.users import User
+from backend import SessionDep
 
 app = FastAPI()
 
