@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 from Models.users import User
-from backend import SessionDep
+from backend import SessionDep, create_db_and_tables
 
 app = FastAPI()
 
