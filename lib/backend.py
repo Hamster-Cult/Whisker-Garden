@@ -11,7 +11,7 @@ from Models.user_entries import UserEntries
 
 
 
-postgresql_url = "postgresql://username:password@localhost/dbname"
+postgresql_url = "postgresql://keita:furry@localhost"
 
 engine = create_engine(postgresql_url, echo=True)
 
