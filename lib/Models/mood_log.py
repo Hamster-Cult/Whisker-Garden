@@ -4,7 +4,7 @@ from sqlmodel import Field, Session, SQLModel, create_engine, select, Column
 from datetime import date, time
 
 
-class mood_log(SQLModel, table=True):
+class MoodLog(SQLModel, table=True):
   mood_id: int | None = Field(default=None, primary_key=True)
   mood_date: date = Field (nullable=False)
   mood_date: date = Field (date, nullable=False)
