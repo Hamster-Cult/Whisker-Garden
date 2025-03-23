@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // FOR DATE AND TIME
-
+import 'package:intl/intl.dart'; // For date and time
+import 'client.dart'; // Handels fetching data
 
 void main() {
   runApp(const MainApp());
@@ -25,6 +25,8 @@ class MainApp extends StatelessWidget {
 
 // loading page
 class TitlePage extends StatelessWidget {
+  const TitlePage({super.key});
+  
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -43,7 +45,15 @@ class TitlePage extends StatelessWidget {
 }
 
 // default page
-class LandingPage extends StatelessWidget {
+class LandingPage extends StatefulWidget {
+  const LandingPage({super.key});
+
+  @override
+  State<LandingPage> createState() => _LandingPageState();
+}
+
+class _LandingPageState extends State<LandingPage> {
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,9 +66,9 @@ class LandingPage extends StatelessWidget {
               //add cat animation
             ],
           ),
-          Align(alignment: Alignment.center, child: LevelBar(level: 5, exp: 700)), // connect values to backend & make it
+          Align(alignment: Alignment.center, child: LevelBar()),
           Text("Write today's entry?",), // needs to be updated based on whether the user has logged mood or not
-          GestureDetector( // button to write entry - this needs to be tied with the text above (showing only if need be)
+          GestureDetector( // button to log mood - this needs to be tied with the text above (showing only if need be)
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(builder: (context) => EntryWritingPage()),
@@ -85,13 +95,15 @@ class LandingPage extends StatelessWidget {
 }
 
 class ToDoPage extends StatelessWidget {
+  const ToDoPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
           NavigationDashboard(),
-          LevelBar(level: 5, exp: 700),
+          LevelBar(),
           Text('This is the to-do page'),
         ],
       ),
@@ -101,13 +113,15 @@ class ToDoPage extends StatelessWidget {
 
 // working on this it doesn't work rn
 class CalendarPage extends StatelessWidget {
+  const CalendarPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
           NavigationDashboard(),
-          LevelBar(level: 5, exp: 700),
+          LevelBar(),
           Text('This is the calendar page'),
           EntryFormatting(
                   entry: "This is an example of an entry",
@@ -120,13 +134,15 @@ class CalendarPage extends StatelessWidget {
 }
 
 class StatsPage extends StatelessWidget {
+  const StatsPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
           NavigationDashboard(),
-          LevelBar(level: 5, exp: 700),
+          LevelBar(),
           Text('This is the statistics page'),
         ],
       ),
@@ -135,13 +151,15 @@ class StatsPage extends StatelessWidget {
 }
 
 class GardenShelfPage extends StatelessWidget {
+  const GardenShelfPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
           NavigationDashboard(),
-          LevelBar(level: 5, exp: 1000),
+          LevelBar(),
           Text('You are viewing the garden!'),
         ],
       ),
@@ -152,6 +170,8 @@ class GardenShelfPage extends StatelessWidget {
 // functional and transitional pages
 
 class MoodLoggingPage extends StatelessWidget {
+  const MoodLoggingPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Image.asset('assets/okay-mood.png');
@@ -159,6 +179,8 @@ class MoodLoggingPage extends StatelessWidget {
 }
 
 class ViewEntryPage extends StatelessWidget {
+  const ViewEntryPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return 
@@ -173,6 +195,8 @@ class ViewEntryPage extends StatelessWidget {
 }
 
 class EntryWritingPage extends StatelessWidget {
+  const EntryWritingPage({super.key});
+
   @override
   Widget build(BuildContext context) {
       return Scaffold(
@@ -210,7 +234,9 @@ class EntryFormatting extends StatelessWidget {
 
   final String entry;
   final String mood;
-  EntryFormatting({Key? key, required this.entry, required this.mood}) : super(key: key);
+
+  EntryFormatting({super.key, required this.entry, required this.mood});
+
   @override
   Widget build(BuildContext context) {
     return 
@@ -265,7 +291,9 @@ class EntryFormatting extends StatelessWidget {
 // update it so it dynamically resizes, animation, gesture detection is only on the pot(?)
 class NavigationButton extends StatelessWidget {
   final String page;
-  NavigationButton({Key? key, required this.page}) : super(key: key);
+
+  const NavigationButton({super.key, required this.page});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -291,6 +319,8 @@ class NavigationButton extends StatelessWidget {
 
 // widget for navigation
 class NavigationDashboard extends StatelessWidget {
+  const NavigationDashboard({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -341,44 +371,80 @@ class NavigationDashboard extends StatelessWidget {
   }
 }
 
-class LevelBar extends StatelessWidget {
-  // need to figure out the math for the way level and exp work
-  final int level;
-  final int exp;
-  LevelBar({Key? key, required this.level, required this.exp}) : super(key: key);
+class LevelBar extends StatefulWidget {
+  const LevelBar({super.key,});
+
+  @override
+  State<LevelBar> createState() => _LevelBarState();
+}
+
+class _LevelBarState extends State<LevelBar> {
+  // CURRENTLY HAS A LIMIT OF 200O EXP BEFORE IT OVERFLOWS
+  // fix the math
+  late Future<Album> _exp = getEXP();
+
+  @override
+  void initState() {
+    super.initState();
+    _exp = getEXP();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          "LV $level:",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        Stack(
-          children: [
-            //idk if have to but maybe aligning the exp instead of layering it
-            Container( // exp bar
-              color: const Color.fromARGB(255, 255, 157, 170),
-              child: SizedBox(
-                width: exp / 10,
-                height: 30,
-              ),
-            ),
-            Container( // level border
-         decoration: BoxDecoration(
-          border: Border.all(
-            color: Color.fromARGB(192, 58, 58, 58),
-            width: 3,),
-          borderRadius: BorderRadius.circular(3),
-         ),
-         child: SizedBox(
-          width: 200,
-          height: 25,
+        // Level indicator
+        FutureBuilder(
+          future: _exp,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return Text(
+              "LV ${snapshot.data!.exp / 100}:",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15));
+              }
+            else if (snapshot.hasError) {
+              return Text('Error: ${snapshot.error}');
+            }
+            return CircularProgressIndicator();
+            }
           ),
-        ),
-        
-          ],
-        ),
+
+        // Level Bar
+        Stack( 
+          children: [
+            FutureBuilder<Album>( // Exp bar
+              future: _exp,
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                          return Container(
+                                    color: const Color.fromARGB(255, 255, 157, 170),
+                                    child: SizedBox(
+                                      width: snapshot.data!.exp / 10,
+                                      height: 30,
+                                    ),
+                                  );
+                                }
+                else if(snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                }
+                return CircularProgressIndicator();
+                }
+              ),
+            Container( // Level bar border
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Color.fromARGB(192, 58, 58, 58),
+                  width: 3,),
+                borderRadius: BorderRadius.circular(3),
+              ),
+              child: SizedBox(
+                width: 200,
+                height: 25,
+                ),
+              ),
+            ],
+          ),
         
       ],
     );
