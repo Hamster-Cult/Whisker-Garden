@@ -9,8 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:whisker_garden/main.dart';
- 
+
 void main() {
+  // PROVIDED EXAMPLE
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MainApp());
@@ -26,5 +27,18 @@ void main() {
     // Verify that our counter has incremented.
     expect(find.text('0'), findsNothing);
     expect(find.text('1'), findsOneWidget);
+  });
+
+  // testWidgets('MainWidget has a Title', (tester) async {
+  //   await tester.pumpWidget(const MainApp());
+
+  //   // await tester;
+  //   await tester.pump();
+  // });
+
+  testWidgets('Entry has been logged', (tester) async {
+    await tester.pumpWidget(const ViewEntryPage());
+
+    // expect(find.text != null), findsOneWidget);
   });
 }
