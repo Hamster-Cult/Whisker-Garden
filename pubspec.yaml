@@ -54,6 +54,7 @@ flutter:
   assets:
     - assets/
     - assets/plants/01/
+    - assets/emotions/
 
   fonts:
   - family: Dogica

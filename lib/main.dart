@@ -53,44 +53,54 @@ class LandingPage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<LandingPage> {
+  final today = DateTime.now();
+  late Future<Map<String, dynamic>> data;
+  // make the messages more dynamic based on how long your streak has been?
+  String message = "Your plant is doing great!";
+  
+
+  @override
+  void initState() {
+    super.initState();
+    data = getData('garden/last');
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          NavigationDashboard(),
-          Stack(
-            children: [
-              Image.asset('assets/plants/01/two.png'), // find out how to connect the image displayed here from backend
-              //add cat animation
-            ],
-          ),
-          Align(alignment: Alignment.center, child: LevelBar()),
-          Text("Write today's entry?",), // needs to be updated based on whether the user has logged mood or not
-          GestureDetector( // button to log mood - this needs to be tied with the text above (showing only if need be)
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => EntryWritingPage()),
-                      );
-                    },
-                    child: Container(
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+    FutureBuilder<Map<String, dynamic>>( // Exp bar
+              future: getData('garden/last'),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  String lastWatered = snapshot.data!['lastWatered'];
+                  //type conversion
+                  if (today != lastWatered) {
+                    message = "Water your plant today?";
+                  }
+
+                  return Scaffold(
+                      body: Column(
                         children: [
-                          Image.asset('assets/entry-creation-button.png'),
-                          SizedBox(width: 8),
-                                ],
-                              ),
-                            ),
-                    ),  
-        ],
-      ),
-    );
+                          NavigationDashboard(),
+                          Stack(
+                            children: [
+                              Image.asset('assets/plants/01/two.png'), // find out how to connect the image displayed here from backend
+                              //add cat animation
+                            ],
+                          ),
+                          Align(alignment: Alignment.center, child: LevelBar()),
+                          Text(message),
+                          CustomButton(destination: MoodLoggingPage(), text: 'yes!')
+                            ],
+                          ),
+                        );
+                                }
+                else if(snapshot.hasError) {
+                  return Scaffold(body: Text('Error: ${snapshot.error}'));
+                }
+                return Scaffold(body: Text('fetching hehe'));
+                }
+              );
+            return Scaffold(body: Text('how'));
   }
 }
 
@@ -104,7 +114,29 @@ class ToDoPage extends StatelessWidget {
         children: [
           NavigationDashboard(),
           LevelBar(),
-          Text('This is the to-do page'),
+          Container(
+            margin: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.blue,
+              borderRadius: BorderRadius.all(Radius.circular(20)),
+            ),
+          ),
+          CustomButton(destination: TaskCreationPage(), text: "Create new task"),
+        ],
+      ),
+    );
+  }
+}
+
+class TaskCreationPage extends StatelessWidget {
+  const TaskCreationPage ({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          Text("Task creation page")
         ],
       ),
     );
@@ -150,18 +182,67 @@ class StatsPage extends StatelessWidget {
   }
 }
 
-class GardenShelfPage extends StatelessWidget {
+class GardenShelfPage extends StatefulWidget {
   const GardenShelfPage({super.key});
 
   @override
+  State<GardenShelfPage> createState() => _GardenShelfPageState();
+}
+
+class _GardenShelfPageState extends State<GardenShelfPage> {
+  // find out how to dynamically resize images
+
+  // currently hardcoded plants, fetch the data
+  List shelves = [
+    GardenShelf(plants: [
+      ShelfPlant(image: 'assets/plant-min2.png'),
+      ShelfPlant(image: 'assets/plant-min2.png'),
+      ShelfPlant(image: 'assets/plant-min2.png'),
+      ]),
+    GardenShelf(plants: [
+      ShelfPlant(image: 'assets/plant-min.png'),
+      ShelfPlant(image: 'assets/plant-min2.png'),
+      ShelfPlant(image: 'assets/plant-min.png'),
+      ShelfPlant(image: 'assets/plant-min.png'),
+    ]),
+  ];
+  int _currentShelf = 0;
+
+  void _onSwipeLeft() {setState(() {
+      if (_currentShelf < shelves.length) {
+        _currentShelf ++;
+        }
+    })
+  ;}
+  void _onSwipeRight() {setState(() {
+    if (_currentShelf != 0) {
+          _currentShelf --;
+        } 
+      })
+    ;}
+
+  @override
   Widget build(BuildContext context) {
+    Widget displayShelf = shelves[_currentShelf];
+
     return Scaffold(
-      body: Column(
-        children: [
-          NavigationDashboard(),
-          LevelBar(),
-          Text('You are viewing the garden!'),
-        ],
+      body: Center(
+        child: Column(
+          children: [
+            NavigationDashboard(),
+            LevelBar(),
+            GestureDetector(
+              onHorizontalDragEnd: (details) {
+                  if (details.primaryVelocity! > 0) { // update which elemnts are shown
+                    _onSwipeRight();
+                  } else if (details.primaryVelocity! < 0) {
+                    _onSwipeLeft();
+                  }
+                },
+                child: displayShelf,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -174,7 +255,131 @@ class MoodLoggingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset('assets/okay-mood.png');
+    return Scaffold(
+      body: Center(
+        child: Column(
+          children: [
+            Text(
+              'Okay!\nHow was your day?',
+              style: TextStyle(fontSize: 20)),
+            // find out how to animate these
+            // find out how to dynamically change the ui
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 3,)),
+            );},
+              child: Container(
+                color: Color.fromARGB(255, 255, 178, 182),
+                width: 70,
+                height: 70,
+                margin: EdgeInsets.all(20),
+              ),
+            ),
+            Row(
+              children: [
+                GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 2,)),
+                  );},
+                    child: Container(
+                      margin: EdgeInsets.only(top: 20, bottom: 20, right: 320, left: 60),
+                      child: Image.asset('assets/emotions/good.png')
+                    ),
+                  ),
+                GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 4,)),
+                  );},
+                    child: Container(
+                      color: Color.fromARGB(255, 245, 191, 184),
+                      width: 70,
+                      height: 70,
+                    ),
+                  ),
+              ],
+            ),
+            Row(
+              children: [
+                GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 1,)),
+                  );},
+                    child: Container(
+                      margin: EdgeInsets.only(top: 100, bottom: 20, right: 300, left: 80),
+                      child: Image.asset('assets/emotions/HAPPII.png'),
+                    ),
+                  ),
+                GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 5,)),
+                  );},
+                    child: Container(
+                      color: Color.fromARGB(255, 253, 184, 144),
+                      width: 70,
+                      height: 70,
+                      margin: EdgeInsets.only(right: 10, top: 100),
+                    ),
+                  ),
+              ],
+            ),
+            // fetch plant image
+            CustomButton(destination: LandingPage(), text: 'cancel'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// in-between page mood logging - entry writing (confirmation lol)
+class WriteEntryPromptPage extends StatelessWidget {
+  final int mood;// translate mood to text value
+  const WriteEntryPromptPage ({super.key, required this.mood});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          Text("You've selected $mood"),
+          CustomBackButton(text: 'edit mood'),
+          Text("Would you like to add an entry?"),
+          CustomButton(destination: EntryWritingPage(), text: 'yes'),
+          CustomButton(destination: SubmissionPage(entryWritten: false,), text: 'no')
+        ],
+      ),
+    );
+  }
+}
+
+// viewing the final daily selection 
+// (if this has a submission button then keep it seperate if not just use viewentrypage)
+
+// this page is entierly built upon what was done before so uhhhh,,,,,
+class SubmissionPage extends StatelessWidget {
+  final bool entryWritten;
+  const SubmissionPage ({super.key, required this.entryWritten});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          Text("Here's all the stuff you've picked, submit?"),
+          CustomButton(destination: MoodLoggingPage(), text: 'edit mood'),
+          Visibility(
+            visible: entryWritten,
+            child: CustomBackButton(text: 'edit entry'),
+            ),
+            CustomButton(destination: ViewEntryPage(), text: 'sumbnit!'),
+        ],
+      ),
+    );
   }
 }
 
@@ -202,7 +407,6 @@ class EntryWritingPage extends StatelessWidget {
       return Scaffold(
         body: Column(
           children: [
-            NavigationDashboard(),
             Expanded(
               child: Container(
                 color: Color.fromARGB(255, 255, 178, 182),
@@ -215,6 +419,8 @@ class EntryWritingPage extends StatelessWidget {
                 )
                 ),
             ),
+            CustomBackButton(text: "cancel"),
+            CustomButton(destination: SubmissionPage(entryWritten: true,), text: "finish"),
           ],
         ),
       );
@@ -381,7 +587,7 @@ class LevelBar extends StatefulWidget {
 class _LevelBarState extends State<LevelBar> {
   // CURRENTLY HAS A LIMIT OF 200O EXP BEFORE IT OVERFLOWS
   // fix the math
-  late Future<Album> _exp = getEXP();
+  late Future<Map<String, dynamic>> _exp = getEXP();
 
   @override
   void initState() {
@@ -400,7 +606,7 @@ class _LevelBarState extends State<LevelBar> {
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               return Text(
-              "LV ${snapshot.data!.exp / 100}:",
+              "LV ${snapshot.data!['exp'] / 100}:",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15));
               }
             else if (snapshot.hasError) {
@@ -413,14 +619,14 @@ class _LevelBarState extends State<LevelBar> {
         // Level Bar
         Stack( 
           children: [
-            FutureBuilder<Album>( // Exp bar
+            FutureBuilder<Map<String, dynamic>>( // Exp bar
               future: _exp,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
                           return Container(
                                     color: const Color.fromARGB(255, 255, 157, 170),
                                     child: SizedBox(
-                                      width: snapshot.data!.exp / 10,
+                                      width: snapshot.data!['exp'] / 10,
                                       height: 30,
                                     ),
                                   );
@@ -450,3 +656,119 @@ class _LevelBarState extends State<LevelBar> {
     );
   }
 }
+
+
+class CustomButton extends StatelessWidget {
+  final Widget destination;
+  final String text;
+  const CustomButton({super.key, required this.destination, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    // find out how to disable continue until you pick an emotion
+    return GestureDetector(
+              onTap: () { // find out how to change the image shown on tap
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => destination));
+                  },
+                  child: SizedBox(
+                    width: 200,
+                    height: 80,
+                    child: Stack(
+                      children: [
+                        Image.asset('assets/button_1.png'), // make the image smaller
+                        Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            text,
+                            style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
+                            ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+  }
+}
+
+class CustomBackButton extends StatelessWidget {
+  final String text;
+  const CustomBackButton({super.key, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    // find out how to disable continue until you pick an emotion
+    return GestureDetector(
+      // find out how to change the image shown on tap
+              onTap: () {Navigator.of(context).pop();},
+                  child: SizedBox(
+                    width: 200,
+                    height: 80,
+                    child: Stack(
+                      children: [
+                        Image.asset('assets/button_1.png'), // make the image smaller
+                        Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            text,
+                            style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
+                            ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+  }
+}
+
+class ShelfPlant extends StatelessWidget {
+  final String image;
+  const ShelfPlant ({super.key, required this.image});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.only(left: 40, right: 40, bottom: 80, top: 80),
+      child: Image.asset(image),
+    );
+  }
+}
+
+class GardenShelf extends StatelessWidget {
+  // limit it to 4 plants per row
+  List<ShelfPlant> plants = []; // make this work lmao
+  GardenShelf ({super.key, required this.plants});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Image.asset('assets/shelf.png'),
+        Column(
+          // iterate through plants and make rows based on that
+          children: [
+            Row(
+            children: plants,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/*
+class TaskBox extends StatelessWidget {
+  const TaskBox ({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text('Here is an example of a task!'),
+        Checkbox(value: value, onChanged: onChanged). // aaaa eepy figure this out later just turn the text strikethorugh or smth
+      ],
+    );
+  }
+}
+*/
