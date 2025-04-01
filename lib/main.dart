@@ -68,29 +68,10 @@ class _LandingPageState extends State<LandingPage> {
           ),
           Align(alignment: Alignment.center, child: LevelBar()),
           Text("Write today's entry?",), // needs to be updated based on whether the user has logged mood or not
-          GestureDetector( // button to log mood - this needs to be tied with the text above (showing only if need be)
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => EntryWritingPage()),
-                      );
-                    },
-                    child: Container(
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Image.asset('assets/entry-creation-button.png'),
-                          SizedBox(width: 8),
-                                ],
-                              ),
-                            ),
-                    ),  
-        ],
-      ),
-    );
+          CustomButton(destination: MoodLoggingPage(), text: 'yes!')
+            ],
+          ),
+        );
   }
 }
 
@@ -104,7 +85,29 @@ class ToDoPage extends StatelessWidget {
         children: [
           NavigationDashboard(),
           LevelBar(),
-          Text('This is the to-do page'),
+          Container(
+            margin: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.blue,
+              borderRadius: BorderRadius.all(Radius.circular(20)),
+            ),
+          ),
+          CustomButton(destination: TaskCreationPage(), text: "Create new task"),
+        ],
+      ),
+    );
+  }
+}
+
+class TaskCreationPage extends StatelessWidget {
+  const TaskCreationPage ({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          Text("Task creation page")
         ],
       ),
     );
@@ -150,18 +153,64 @@ class StatsPage extends StatelessWidget {
   }
 }
 
-class GardenShelfPage extends StatelessWidget {
+class GardenShelfPage extends StatefulWidget {
   const GardenShelfPage({super.key});
+
+  @override
+  State<GardenShelfPage> createState() => _GardenShelfPageState();
+}
+
+class _GardenShelfPageState extends State<GardenShelfPage> {
+  // find out a way to have multiple shelves and navigate thorugh them
+  // find out how to dynamically resize images
+  List shelves = [];
+  int _currentShelf = 0;
+
+  void _onSwipeLeft() {setState(() {_currentShelf ++;});}
+  void _onSwipeRight() {setState(() {_currentShelf --;});}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          NavigationDashboard(),
-          LevelBar(),
-          Text('You are viewing the garden!'),
-        ],
+      body: Center(
+        child: Column(
+          children: [
+            NavigationDashboard(),
+            LevelBar(),
+            Stack( // dynamically add rows instead of rendering empty ones??
+              children: [
+                GestureDetector(
+                  onHorizontalDragEnd: (details) {
+                      if (details.primaryVelocity! > 0) { // update which elemnts are shown
+                        _onSwipeRight();
+                      } else if (details.primaryVelocity! < 0) {
+                        _onSwipeLeft();
+                      }
+                    },
+                  child: Image.asset('assets/shelf.png'), // why is this not being centered??
+                  ),
+                Column(
+                  children: [
+                    Row( // make sure it can't overflow
+                      children: [
+                        ShelfPlant(image: 'assets/plant-min.png'),
+                        ShelfPlant(image: 'assets/plant-min.png'),
+                        ShelfPlant(image: 'assets/plant-min.png')
+                        ],
+                      ),
+                      Row( // make sure it can't overflow
+                      children: [
+                        ShelfPlant(image: 'assets/plant-min2.png'),
+                        ShelfPlant(image: 'assets/plant-min2.png'),
+                        ShelfPlant(image: 'assets/plant-min2.png')
+                        ],
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -174,7 +223,133 @@ class MoodLoggingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset('assets/okay-mood.png');
+    return Scaffold(
+      body: Center(
+        child: Column(
+          children: [
+            Text(
+              'Okay!\n On a scale of 1 - 5 how was your day?',
+              style: TextStyle(fontSize: 20)),
+            // find out how to animate these
+            // find out how to dynamically change the ui
+            GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage()),
+            );},
+              child: Container(
+                color: Color.fromARGB(255, 255, 178, 182),
+                width: 70,
+                height: 70,
+                margin: EdgeInsets.all(20),
+              ),
+            ),
+            Row(
+              children: [
+                GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage()),
+                  );},
+                    child: Container(
+                      margin: EdgeInsets.only(top: 20, bottom: 20, right: 260, left: 60),
+                      child: Image.asset('assets/emotions/good.png')
+                    ),
+                  ),
+                GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage()),
+                  );},
+                    child: Container(
+                      color: Color.fromARGB(255, 245, 191, 184),
+                      width: 70,
+                      height: 70,
+                    ),
+                  ),
+              ],
+            ),
+            Text('Today was {an okay} day'),
+            Row(
+              children: [
+                GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage()),
+                  );},
+                    child: Container(
+                      margin: EdgeInsets.only(top: 100, bottom: 20, right: 220, left: 80),
+                      child: Image.asset('assets/emotions/HAPPII.png'),
+                    ),
+                  ),
+                GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage()),
+                  );},
+                    child: Container(
+                      color: Color.fromARGB(255, 253, 184, 144),
+                      width: 70,
+                      height: 70,
+                      margin: EdgeInsets.only(right: 10, top: 100),
+                    ),
+                  ),
+              ],
+            ),
+            Row(
+              children: [
+                CustomButton(destination: LandingPage(), text: 'cancel'),
+                //Image.asset('assets/plants/01/two.png'),
+                // again fetch the image and resize it
+                CustomButton(destination: WriteEntryPromptPage(), text: 'continue'),
+              ],
+            )
+          ],
+        )
+      ),
+    );
+  }
+}
+
+// in-between page mood logging - entry writing (confirmation lol)
+class WriteEntryPromptPage extends StatelessWidget {
+  const WriteEntryPromptPage ({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          Text("You've selected {this.mood}"),
+          CustomBackButton(text: 'edit mood'),
+          Text("Would you like to add an entry?"),
+          CustomButton(destination: EntryWritingPage(), text: 'yes'),
+          CustomButton(destination: SubmissionPage(), text: 'no')
+        ],
+      ),
+    );
+  }
+}
+
+// viewing the final daily selection 
+// (if this has a submission button then keep it seperate if not just use viewentrypage)
+
+// this page is entierly built upon what was done before so uhhhh,,,,,
+class SubmissionPage extends StatelessWidget {
+  const SubmissionPage ({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          Text("Here's all the stuff you've picked, submit?"),
+          CustomButton(destination: MoodLoggingPage(), text: 'edit mood'),
+          CustomBackButton(text: 'edit entry'), // dynamically add this in case they don't write an entry
+          CustomButton(destination: ViewEntryPage(), text: 'sumbnit!'),
+        ],
+      ),
+    );
   }
 }
 
@@ -202,7 +377,6 @@ class EntryWritingPage extends StatelessWidget {
       return Scaffold(
         body: Column(
           children: [
-            NavigationDashboard(),
             Expanded(
               child: Container(
                 color: Color.fromARGB(255, 255, 178, 182),
@@ -215,6 +389,8 @@ class EntryWritingPage extends StatelessWidget {
                 )
                 ),
             ),
+            CustomBackButton(text: "cancel"),
+            CustomButton(destination: SubmissionPage(), text: "finish"),
           ],
         ),
       );
@@ -446,6 +622,97 @@ class _LevelBarState extends State<LevelBar> {
             ],
           ),
         
+      ],
+    );
+  }
+}
+
+
+class CustomButton extends StatelessWidget {
+  final Widget destination;
+  final String text;
+  const CustomButton({super.key, required this.destination, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    // find out how to disable continue until you pick an emotion
+    return GestureDetector(
+              onTap: () { // find out how to change the image shown on tap
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => destination));
+                  },
+                  child: SizedBox(
+                    width: 200,
+                    height: 80,
+                    child: Stack(
+                      children: [
+                        Image.asset('assets/button_1.png'), // make the image smaller
+                        Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            text,
+                            style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
+                            ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+  }
+}
+
+class CustomBackButton extends StatelessWidget {
+  final String text;
+  const CustomBackButton({super.key, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    // find out how to disable continue until you pick an emotion
+    return GestureDetector(
+      // find out how to change the image shown on tap
+              onTap: () {Navigator.of(context).pop();},
+                  child: SizedBox(
+                    width: 200,
+                    height: 80,
+                    child: Stack(
+                      children: [
+                        Image.asset('assets/button_1.png'), // make the image smaller
+                        Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            text,
+                            style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
+                            ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+  }
+}
+
+class ShelfPlant extends StatelessWidget {
+  final String image;
+  const ShelfPlant ({super.key, required this.image});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.only(left: 40, right: 40, bottom: 80, top: 80),
+      child: Image.asset(image),
+    );
+  }
+}
+
+class TaskBox extends StatelessWidget {
+  const TaskBox ({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text('Here is an example of a task!'),
+        Checkbox(value: value, onChanged: onChanged). // aaaa eepy figure this out later just turn the text strikethorugh or smth
       ],
     );
   }
