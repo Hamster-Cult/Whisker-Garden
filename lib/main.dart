@@ -161,53 +161,56 @@ class GardenShelfPage extends StatefulWidget {
 }
 
 class _GardenShelfPageState extends State<GardenShelfPage> {
-  // find out a way to have multiple shelves and navigate thorugh them
   // find out how to dynamically resize images
-  List shelves = [];
+
+  // currently hardcoded plants, fetch the data
+  List shelves = [
+    GardenShelf(plants: [
+      ShelfPlant(image: 'assets/plant-min2.png'),
+      ShelfPlant(image: 'assets/plant-min2.png'),
+      ShelfPlant(image: 'assets/plant-min2.png'),
+      ]),
+    GardenShelf(plants: [
+      ShelfPlant(image: 'assets/plant-min.png'),
+      ShelfPlant(image: 'assets/plant-min2.png'),
+      ShelfPlant(image: 'assets/plant-min.png'),
+      ShelfPlant(image: 'assets/plant-min.png'),
+    ]),
+  ];
   int _currentShelf = 0;
 
-  void _onSwipeLeft() {setState(() {_currentShelf ++;});}
-  void _onSwipeRight() {setState(() {_currentShelf --;});}
+  void _onSwipeLeft() {setState(() {
+      if (_currentShelf < shelves.length) {
+        _currentShelf ++;
+        }
+    })
+  ;}
+  void _onSwipeRight() {setState(() {
+    if (_currentShelf != 0) {
+          _currentShelf --;
+        } 
+      })
+    ;}
 
   @override
   Widget build(BuildContext context) {
+    Widget displayShelf = shelves[_currentShelf];
+
     return Scaffold(
       body: Center(
         child: Column(
           children: [
             NavigationDashboard(),
             LevelBar(),
-            Stack( // dynamically add rows instead of rendering empty ones??
-              children: [
-                GestureDetector(
-                  onHorizontalDragEnd: (details) {
-                      if (details.primaryVelocity! > 0) { // update which elemnts are shown
-                        _onSwipeRight();
-                      } else if (details.primaryVelocity! < 0) {
-                        _onSwipeLeft();
-                      }
-                    },
-                  child: Image.asset('assets/shelf.png'), // why is this not being centered??
-                  ),
-                Column(
-                  children: [
-                    Row( // make sure it can't overflow
-                      children: [
-                        ShelfPlant(image: 'assets/plant-min.png'),
-                        ShelfPlant(image: 'assets/plant-min.png'),
-                        ShelfPlant(image: 'assets/plant-min.png')
-                        ],
-                      ),
-                      Row( // make sure it can't overflow
-                      children: [
-                        ShelfPlant(image: 'assets/plant-min2.png'),
-                        ShelfPlant(image: 'assets/plant-min2.png'),
-                        ShelfPlant(image: 'assets/plant-min2.png')
-                        ],
-                      ),
-                  ],
-                ),
-              ],
+            GestureDetector(
+              onHorizontalDragEnd: (details) {
+                  if (details.primaryVelocity! > 0) { // update which elemnts are shown
+                    _onSwipeRight();
+                  } else if (details.primaryVelocity! < 0) {
+                    _onSwipeLeft();
+                  }
+                },
+                child: displayShelf,
             ),
           ],
         ),
@@ -704,6 +707,29 @@ class ShelfPlant extends StatelessWidget {
   }
 }
 
+class GardenShelf extends StatelessWidget {
+  List<ShelfPlant> plants = []; // make this work lmao
+  GardenShelf ({super.key, required this.plants});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Image.asset('assets/shelf.png'),
+        Column(
+          // iterate through plants and make rows based on that
+          children: [
+            Row(
+            children: plants,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/*
 class TaskBox extends StatelessWidget {
   const TaskBox ({super.key});
 
@@ -717,3 +743,4 @@ class TaskBox extends StatelessWidget {
     );
   }
 }
+*/
