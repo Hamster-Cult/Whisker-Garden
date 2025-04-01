@@ -23,3 +23,10 @@ async def read_root_http():
     data = json.load(f)
     f.close()
     return data
+
+@app.get("/garden/last_watered")
+async def read_root_http():
+    f = open('data.json')
+    data = json.load(f)
+    f.close()
+    return data

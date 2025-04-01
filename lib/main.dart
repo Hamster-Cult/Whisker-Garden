@@ -53,25 +53,54 @@ class LandingPage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<LandingPage> {
+  final today = DateTime.now();
+  late Future<Map<String, dynamic>> data;
+  // make the messages more dynamic based on how long your streak has been?
+  String message = "Your plant is doing great!";
+  
+
+  @override
+  void initState() {
+    super.initState();
+    data = getData('garden/last');
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          NavigationDashboard(),
-          Stack(
-            children: [
-              Image.asset('assets/plants/01/two.png'), // find out how to connect the image displayed here from backend
-              //add cat animation
-            ],
-          ),
-          Align(alignment: Alignment.center, child: LevelBar()),
-          Text("Write today's entry?",), // needs to be updated based on whether the user has logged mood or not
-          CustomButton(destination: MoodLoggingPage(), text: 'yes!')
-            ],
-          ),
-        );
+    FutureBuilder<Map<String, dynamic>>( // Exp bar
+              future: getData('garden/last'),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  String lastWatered = snapshot.data!['lastWatered'];
+                  //type conversion
+                  if (today != lastWatered) {
+                    message = "Water your plant today?";
+                  }
+
+                  return Scaffold(
+                      body: Column(
+                        children: [
+                          NavigationDashboard(),
+                          Stack(
+                            children: [
+                              Image.asset('assets/plants/01/two.png'), // find out how to connect the image displayed here from backend
+                              //add cat animation
+                            ],
+                          ),
+                          Align(alignment: Alignment.center, child: LevelBar()),
+                          Text(message),
+                          CustomButton(destination: MoodLoggingPage(), text: 'yes!')
+                            ],
+                          ),
+                        );
+                                }
+                else if(snapshot.hasError) {
+                  return Scaffold(body: Text('Error: ${snapshot.error}'));
+                }
+                return Scaffold(body: Text('fetching hehe'));
+                }
+              );
+            return Scaffold(body: Text('how'));
   }
 }
 
@@ -558,7 +587,7 @@ class LevelBar extends StatefulWidget {
 class _LevelBarState extends State<LevelBar> {
   // CURRENTLY HAS A LIMIT OF 200O EXP BEFORE IT OVERFLOWS
   // fix the math
-  late Future<Album> _exp = getEXP();
+  late Future<Map<String, dynamic>> _exp = getEXP();
 
   @override
   void initState() {
@@ -577,7 +606,7 @@ class _LevelBarState extends State<LevelBar> {
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               return Text(
-              "LV ${snapshot.data!.exp / 100}:",
+              "LV ${snapshot.data!['exp'] / 100}:",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15));
               }
             else if (snapshot.hasError) {
@@ -590,14 +619,14 @@ class _LevelBarState extends State<LevelBar> {
         // Level Bar
         Stack( 
           children: [
-            FutureBuilder<Album>( // Exp bar
+            FutureBuilder<Map<String, dynamic>>( // Exp bar
               future: _exp,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
                           return Container(
                                     color: const Color.fromARGB(255, 255, 157, 170),
                                     child: SizedBox(
-                                      width: snapshot.data!.exp / 10,
+                                      width: snapshot.data!['exp'] / 10,
                                       height: 30,
                                     ),
                                   );
