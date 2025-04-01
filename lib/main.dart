@@ -231,14 +231,14 @@ class MoodLoggingPage extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              'Okay!\n On a scale of 1 - 5 how was your day?',
+              'Okay!\nHow was your day?',
               style: TextStyle(fontSize: 20)),
             // find out how to animate these
             // find out how to dynamically change the ui
             GestureDetector(
               onTap: () {
                 Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage()),
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 3,)),
             );},
               child: Container(
                 color: Color.fromARGB(255, 255, 178, 182),
@@ -252,17 +252,17 @@ class MoodLoggingPage extends StatelessWidget {
                 GestureDetector(
               onTap: () {
                 Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage()),
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 2,)),
                   );},
                     child: Container(
-                      margin: EdgeInsets.only(top: 20, bottom: 20, right: 260, left: 60),
+                      margin: EdgeInsets.only(top: 20, bottom: 20, right: 320, left: 60),
                       child: Image.asset('assets/emotions/good.png')
                     ),
                   ),
                 GestureDetector(
               onTap: () {
                 Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage()),
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 4,)),
                   );},
                     child: Container(
                       color: Color.fromARGB(255, 245, 191, 184),
@@ -272,23 +272,22 @@ class MoodLoggingPage extends StatelessWidget {
                   ),
               ],
             ),
-            Text('Today was {an okay} day'),
             Row(
               children: [
                 GestureDetector(
               onTap: () {
                 Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage()),
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 1,)),
                   );},
                     child: Container(
-                      margin: EdgeInsets.only(top: 100, bottom: 20, right: 220, left: 80),
+                      margin: EdgeInsets.only(top: 100, bottom: 20, right: 300, left: 80),
                       child: Image.asset('assets/emotions/HAPPII.png'),
                     ),
                   ),
                 GestureDetector(
               onTap: () {
                 Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage()),
+                        MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 5,)),
                   );},
                     child: Container(
                       color: Color.fromARGB(255, 253, 184, 144),
@@ -299,16 +298,10 @@ class MoodLoggingPage extends StatelessWidget {
                   ),
               ],
             ),
-            Row(
-              children: [
-                CustomButton(destination: LandingPage(), text: 'cancel'),
-                //Image.asset('assets/plants/01/two.png'),
-                // again fetch the image and resize it
-                CustomButton(destination: WriteEntryPromptPage(), text: 'continue'),
-              ],
-            )
+            // fetch plant image
+            CustomButton(destination: LandingPage(), text: 'cancel'),
           ],
-        )
+        ),
       ),
     );
   }
@@ -316,18 +309,19 @@ class MoodLoggingPage extends StatelessWidget {
 
 // in-between page mood logging - entry writing (confirmation lol)
 class WriteEntryPromptPage extends StatelessWidget {
-  const WriteEntryPromptPage ({super.key});
+  final int mood;// translate mood to text value
+  const WriteEntryPromptPage ({super.key, required this.mood});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
-          Text("You've selected {this.mood}"),
+          Text("You've selected $mood"),
           CustomBackButton(text: 'edit mood'),
           Text("Would you like to add an entry?"),
           CustomButton(destination: EntryWritingPage(), text: 'yes'),
-          CustomButton(destination: SubmissionPage(), text: 'no')
+          CustomButton(destination: SubmissionPage(entryWritten: false,), text: 'no')
         ],
       ),
     );
@@ -339,7 +333,8 @@ class WriteEntryPromptPage extends StatelessWidget {
 
 // this page is entierly built upon what was done before so uhhhh,,,,,
 class SubmissionPage extends StatelessWidget {
-  const SubmissionPage ({super.key});
+  final bool entryWritten;
+  const SubmissionPage ({super.key, required this.entryWritten});
 
   @override
   Widget build(BuildContext context) {
@@ -348,8 +343,11 @@ class SubmissionPage extends StatelessWidget {
         children: [
           Text("Here's all the stuff you've picked, submit?"),
           CustomButton(destination: MoodLoggingPage(), text: 'edit mood'),
-          CustomBackButton(text: 'edit entry'), // dynamically add this in case they don't write an entry
-          CustomButton(destination: ViewEntryPage(), text: 'sumbnit!'),
+          Visibility(
+            visible: entryWritten,
+            child: CustomBackButton(text: 'edit entry'),
+            ),
+            CustomButton(destination: ViewEntryPage(), text: 'sumbnit!'),
         ],
       ),
     );
@@ -393,7 +391,7 @@ class EntryWritingPage extends StatelessWidget {
                 ),
             ),
             CustomBackButton(text: "cancel"),
-            CustomButton(destination: SubmissionPage(), text: "finish"),
+            CustomButton(destination: SubmissionPage(entryWritten: true,), text: "finish"),
           ],
         ),
       );
@@ -708,6 +706,7 @@ class ShelfPlant extends StatelessWidget {
 }
 
 class GardenShelf extends StatelessWidget {
+  // limit it to 4 plants per row
   List<ShelfPlant> plants = []; // make this work lmao
   GardenShelf ({super.key, required this.plants});
 
