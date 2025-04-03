@@ -1,3 +1,5 @@
+# DISCARD OF THIS NEVER TOUCH IT AGAIN USE APP.PY INSTEAD
+
 from typing import Union
 from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Query
