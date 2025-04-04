@@ -67,40 +67,60 @@ class _LandingPageState extends State<LandingPage> {
 
   @override
   Widget build(BuildContext context) {
-    FutureBuilder<Map<String, dynamic>>( // Exp bar
-              future: getData('garden/last'),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  String lastWatered = snapshot.data!['lastWatered'];
-                  //type conversion
-                  if (today != lastWatered) {
-                    message = "Water your plant today?";
-                  }
+    return Scaffold(
+            body: Column(
+              children: [
+                NavigationDashboard(),
+                Stack(
+                  children: [
+                    FutureBuilder<Map<String, dynamic>>(
+                      future: getData('user/plant'),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          int plantID = snapshot.data!['plantID'];
+                          int plantAge = snapshot.data!['plantMaturity'];
+                          String plantPath = "/$plantID/$plantAge.png";
 
-                  return Scaffold(
-                      body: Column(
-                        children: [
-                          NavigationDashboard(),
-                          Stack(
-                            children: [
-                              Image.asset('assets/plants/01/two.png'), // find out how to connect the image displayed here from backend
-                              //add cat animation
-                            ],
-                          ),
-                          Align(alignment: Alignment.center, child: LevelBar()),
-                          Text(message),
-                          CustomButton(destination: MoodLoggingPage(), text: 'yes!')
-                            ],
-                          ),
+                          return Image.asset("assets/plants$plantPath");
+
+                        }
+                        return Text('failed to fetch plant');
+                        //return Image.asset('/assets/plants/1/2.png');
+                      },
+                    ),
+                    //add cat animation
+                  ],
+                ),
+                Align(alignment: Alignment.center, child: LevelBar()),
+                FutureBuilder<Map<String, dynamic>>( // fetching the date to provide custom images
+                    future: getData('garden/last'),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        String lastWatered = snapshot.data!['lastWatered'];
+                        DateTime formatted = DateTime.parse(lastWatered);
+                        lastWatered = DateFormat('dd MMMM yyy').format(formatted);
+                        String today = DateFormat('dd MMMM yyy').format(DateTime.now());
+                        
+                        if (today != lastWatered) {
+                          message = "Water your plant today?";
+                        }
+
+                        return Column(
+                          children: [
+                          Text(message), CustomButton(destination: MoodLoggingPage(), text: 'yes!')
+                          ],
                         );
-                                }
-                else if(snapshot.hasError) {
-                  return Scaffold(body: Text('Error: ${snapshot.error}'));
-                }
-                return Scaffold(body: Text('fetching hehe'));
-                }
+                      }
+                        
+                      else if(snapshot.hasError) {
+                        return Text('Error: ${snapshot.error}');
+                      }
+                      return Text(message);
+                      }
+                    ),
+                  ],
+                ),
               );
-            return Scaffold(body: Text('how'));
   }
 }
 
@@ -399,6 +419,7 @@ class ViewEntryPage extends StatelessWidget {
   }
 }
 
+// test unicode and special characters make sure the db can handle it as well
 class EntryWritingPage extends StatelessWidget {
   const EntryWritingPage({super.key});
 
@@ -587,12 +608,12 @@ class LevelBar extends StatefulWidget {
 class _LevelBarState extends State<LevelBar> {
   // CURRENTLY HAS A LIMIT OF 200O EXP BEFORE IT OVERFLOWS
   // fix the math
-  late Future<Map<String, dynamic>> _exp = getEXP();
+  late Future<Map<String, dynamic>> _exp = getData('user/exp');
 
   @override
   void initState() {
     super.initState();
-    _exp = getEXP();
+    _exp = getData('user/exp');
   }
 
   @override
