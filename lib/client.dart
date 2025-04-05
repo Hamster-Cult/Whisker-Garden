@@ -3,8 +3,9 @@ import 'dart:convert'; // For json parsing
 import 'package:http/http.dart' as http; // To connect to web server
 
 
-Future<Map<String, dynamic>> getData(String path) async {
-  var url = Uri.parse('http://127.0.0.1:8000/$path');
+
+Future<List<dynamic>> getData(String path) async {
+  var url = Uri.parse('http://127.0.0.1:8000$path');
   final response = await http.get(url);
 
   if (response.statusCode == 200) {

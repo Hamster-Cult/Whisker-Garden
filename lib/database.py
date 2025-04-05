@@ -39,7 +39,7 @@ class Garden(SQLModel, table=True):
   name: str = Field(max_length=20, nullable=False)
   archived: bool = Field(nullable=False)
   maturity: int = Field(nullable=False)
-  last_watered: date = Field(nullable=False)
+  last_watered: date = Field(nullable=True)
 
 class Entries(SQLModel, table=True):
     entry_id: int | None = Field(default=None, primary_key=True)

@@ -54,7 +54,7 @@ class LandingPage extends StatefulWidget {
 
 class _LandingPageState extends State<LandingPage> {
   final today = DateTime.now();
-  late Future<Map<String, dynamic>> data;
+  late Future<List<dynamic>> data;
   // make the messages more dynamic based on how long your streak has been?
   String message = "Your plant is doing great!";
   
@@ -62,7 +62,7 @@ class _LandingPageState extends State<LandingPage> {
   @override
   void initState() {
     super.initState();
-    data = getData('garden/last');
+    data = getData('/garden/last');
   }
 
   @override
@@ -73,30 +73,33 @@ class _LandingPageState extends State<LandingPage> {
                 NavigationDashboard(),
                 Stack(
                   children: [
-                    FutureBuilder<Map<String, dynamic>>(
-                      future: getData('user/plant'),
+                    FutureBuilder<List<dynamic>>(
+                      future: getData('/user/plant'),
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
-                          int plantID = snapshot.data!['plantID'];
-                          int plantAge = snapshot.data!['plantMaturity'];
+                          // fetch the 0 aswell
+                          int plantID = snapshot.data![0]['plant_id'];
+                          //int plantAge = snapshot.data!['plantMaturity'];
+                          int plantAge = 2;
                           String plantPath = "/$plantID/$plantAge.png";
 
                           return Image.asset("assets/plants$plantPath");
 
+                        } else if (snapshot.hasError) {
+                          return Text('${snapshot.error}');
                         }
                         return Text('failed to fetch plant');
-                        //return Image.asset('/assets/plants/1/2.png');
                       },
                     ),
                     //add cat animation
                   ],
                 ),
                 Align(alignment: Alignment.center, child: LevelBar()),
-                FutureBuilder<Map<String, dynamic>>( // fetching the date to provide custom images
-                    future: getData('garden/last'),
+                FutureBuilder<List<dynamic>>( // fetching the date to notify the user if they need to water the plant or not
+                    future: getData('/garden/last'),
                     builder: (context, snapshot) {
                       if (snapshot.hasData) {
-                        String lastWatered = snapshot.data!['lastWatered'];
+                        String lastWatered = snapshot.data![0]['last_watered'];
                         DateTime formatted = DateTime.parse(lastWatered);
                         lastWatered = DateFormat('dd MMMM yyy').format(formatted);
                         String today = DateFormat('dd MMMM yyy').format(DateTime.now());
@@ -608,12 +611,12 @@ class LevelBar extends StatefulWidget {
 class _LevelBarState extends State<LevelBar> {
   // CURRENTLY HAS A LIMIT OF 200O EXP BEFORE IT OVERFLOWS
   // fix the math
-  late Future<Map<String, dynamic>> _exp = getData('user/exp');
+  late Future<List<dynamic>> _exp = getData('/exp');
 
   @override
   void initState() {
     super.initState();
-    _exp = getData('user/exp');
+    _exp = getData('/exp');
   }
 
   @override
@@ -622,40 +625,40 @@ class _LevelBarState extends State<LevelBar> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Level indicator
-        FutureBuilder(
+        FutureBuilder<List<dynamic>>(
           future: _exp,
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               return Text(
-              "LV ${snapshot.data!['exp'] / 100}:",
+              "LV ${snapshot.data![0]['level']}:",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15));
               }
             else if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
+              return Text('WOMP WOMP');
             }
-            return CircularProgressIndicator();
+            return Text('fetching....');
             }
           ),
 
         // Level Bar
         Stack( 
           children: [
-            FutureBuilder<Map<String, dynamic>>( // Exp bar
+            FutureBuilder<List<dynamic>>( // Exp bar
               future: _exp,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
-                          return Container(
-                                    color: const Color.fromARGB(255, 255, 157, 170),
-                                    child: SizedBox(
-                                      width: snapshot.data!['exp'] / 10,
-                                      height: 30,
-                                    ),
-                                  );
-                                }
-                else if(snapshot.hasError) {
-                  return Text('Error: ${snapshot.error}');
+                      return Container(
+                                color: const Color.fromARGB(255, 255, 157, 170),
+                                child: SizedBox(
+                                  width: snapshot.data![0]['exp'],
+                                  height: 30,
+                                ),
+                              );
+                            }
+                else if (snapshot.hasError) {
+                  return Text('WOMP WOMP');
                 }
-                return CircularProgressIndicator();
+                return Text('fetching....');
                 }
               ),
             Container( // Level bar border

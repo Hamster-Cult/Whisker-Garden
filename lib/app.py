@@ -3,6 +3,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 from fastapi.middleware.cors import CORSMiddleware
 from database import *
+from json import *
 
 postgresql_url = "postgresql://:Gardens@localhost/whisker"
 
@@ -36,6 +37,13 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
+    # have plants and stuff in the db from a fresh install
+    # why do we recreate the db and tables whenever the server is started?
+    # shouldn't we have it static???
+    create_plants()
+    create_garden()
+    create_user()
+    create_garden()
 
 @app.post("/entry/")
 def create_entry(entry: Entries, session: SessionDep) -> Entries:
@@ -45,18 +53,48 @@ def create_entry(entry: Entries, session: SessionDep) -> Entries:
     return entry
 
 @app.get("/user/plant")
-def get_plant_asset(plant_id: int, maturity: int, session: SessionDep) -> int:
-    plant_id = session.get(Garden, plant_id)
-    maturity = session.get(Garden, maturity)
+def get_plant_asset():
+    with Session(engine) as session:
+        return session.exec(select(Plant)).all()
+    #plant_id = session.get(Garden, plant_id)
+    #maturity = session.get(Garden, maturity)
     #if not hero:
         #raise HTTPException(status_code=404, detail="Hero not found")
-    return plant_id
+
+@app.get("/exp")
+def get_exp():
+    with Session(engine) as session:
+        return session.exec(select(User)).all()
+    
+@app.get("/garden/last")
+def get_exp():
+    with Session(engine) as session:
+        return session.exec(select(Garden)).all()
+
+# let the user write their username?
+def create_user():
+    with Session(engine) as session:
+        user = User(username='default user', plant_id=1, level=1, exp=200)
+        session.add(user)
+        session.commit()
 
 def create_plants():
-    plant_1 = Plant(plant_type='tulips')
-    plant_2 = Plant(plant_type='hibiscus')
-
-def select_current_plant():
     with Session(engine) as session:
-        statement = select(Garden)
-        results = session.exec(statement)
+        plant_1 = Plant(plant_type='tulips', unlocked=True) # default plant
+        plant_2 = Plant(plant_type='hibiscus')
+
+        session.add(plant_1)
+        session.add(plant_2)
+        session.commit()
+
+def create_garden():
+    with Session(engine) as session:
+        garden_plant = Garden(
+            plant_id=1, 
+            name='default tulip', 
+            archived=False, 
+            maturity=2, 
+            last_watered='2025-04-03')
+        
+        session.add(garden_plant)
+        session.commit()
