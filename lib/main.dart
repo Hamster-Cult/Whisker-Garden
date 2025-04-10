@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // For date and time
 import 'client.dart'; // Handels fetching data
@@ -103,16 +106,20 @@ class _LandingPageState extends State<LandingPage> {
                         DateTime formatted = DateTime.parse(lastWatered);
                         lastWatered = DateFormat('dd MMMM yyy').format(formatted);
                         String today = DateFormat('dd MMMM yyy').format(DateTime.now());
+                        print(DateFormat('HH:MM').format(DateTime.now()));
                         
                         if (today != lastWatered) {
                           message = "Water your plant today?";
-                        }
-
-                        return Column(
+                          return Column(
                           children: [
                           Text(message), CustomButton(destination: MoodLoggingPage(), text: 'yes!')
+                          // allow the user to write more than one entry per day?
                           ],
                         );
+                        }
+
+                        return Text(message);
+                        
                       }
                         
                       else if(snapshot.hasError) {
@@ -167,21 +174,82 @@ class TaskCreationPage extends StatelessWidget {
 }
 
 // working on this it doesn't work rn
-class CalendarPage extends StatelessWidget {
+class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
 
   @override
+  State<CalendarPage> createState() => _CalendarPageState();
+}
+
+class _CalendarPageState extends State<CalendarPage> {
+ 
+  int _totalEntries = 9;
+  List<List<MiniEntryView>> entries = [];
+
+  // takes the total number of entries in the db and makes a new
+  // 'page' in the form of a list to store the widgets
+  void makeEntryPages() {
+    if (_totalEntries == 0) {
+      //make a page that promprs the user to make an entry
+    }
+    else {
+      for (var i = 0; i < _totalEntries; i+=4) {
+        entries.add([]);
+      }
+    }
+  }
+
+  void fillEntryPages() async {
+    
+    for (var i = 0; i < 3; i++) { // each page has a max of 4 entries shown at a time
+      entries[_currentPage].add(
+        MiniEntryView(entry: entry, mood: mood)
+      );
+    }
+  }
+
+  int _currentPage = 0;
+
+  @override
   Widget build(BuildContext context) {
+    List<Widget> displayEntries = entries[_currentPage];
+
     return Scaffold(
       body: Column(
         children: [
           NavigationDashboard(),
           LevelBar(),
-          Text('This is the calendar page'),
-          EntryFormatting(
-                  entry: "This is an example of an entry",
-                  mood: "Lorem Ipsum",
-                    ),
+          Column(children: displayEntries),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (_currentPage > 0) {_currentPage --;}
+                  });
+                },
+                child: Container(
+                  width: 100,
+                  height: 70,
+                  color: Colors.blueGrey,
+                  child: Text('<'),
+                  )
+                ),
+                GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (_currentPage < entries.length) {_currentPage ++;} // fetch the total number of entries and divide by 4
+                  });
+                },
+                child: Container(
+                  width: 100,
+                  height: 70,
+                  color: Colors.blueGrey,
+                  child: Text('>'),
+                  )
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -308,7 +376,7 @@ class MoodLoggingPage extends StatelessWidget {
                   );},
                     child: Container(
                       margin: EdgeInsets.only(top: 20, bottom: 20, right: 320, left: 60),
-                      child: Image.asset('assets/emotions/good.png')
+                      child: Image.asset('assets/emotions/2.png')
                     ),
                   ),
                 GestureDetector(
@@ -333,7 +401,7 @@ class MoodLoggingPage extends StatelessWidget {
                   );},
                     child: Container(
                       margin: EdgeInsets.only(top: 100, bottom: 20, right: 300, left: 80),
-                      child: Image.asset('assets/emotions/HAPPII.png'),
+                      child: Image.asset('assets/emotions/1.png'),
                     ),
                   ),
                 GestureDetector(
@@ -369,62 +437,126 @@ class WriteEntryPromptPage extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: [
-          Text("You've selected $mood"),
-          CustomBackButton(text: 'edit mood'),
+          Row(
+            children: [
+              Image.asset('assets/emotions/$mood.png'),
+              CustomBackButton(text: 'edit mood'),
+            ],
+          ),
           Text("Would you like to add an entry?"),
-          CustomButton(destination: EntryWritingPage(), text: 'yes'),
-          CustomButton(destination: SubmissionPage(entryWritten: false,), text: 'no')
+          Row(
+            children: [
+            CustomButton(destination: EntryWritingPage(mood: mood), text: 'yes'),
+            CustomButton(destination: SubmissionPage(mood: mood, entryWritten: false,), text: 'no')
+            ],
+          ),
+          
         ],
       ),
     );
   }
 }
 
-// viewing the final daily selection 
-// (if this has a submission button then keep it seperate if not just use viewentrypage)
 
-// this page is entierly built upon what was done before so uhhhh,,,,,
+// (if this has a submission button then keep it seperate if not just use viewentrypage)
+// okay I'm barely functional rn I have no idea what I'm writing so the code is probably trash but uhm
+// change the destination page if you don't write an entry and just log your mood
+// this probably has implications for the db but I can't think aaaaa
 class SubmissionPage extends StatelessWidget {
   final bool entryWritten;
-  const SubmissionPage ({super.key, required this.entryWritten});
+  final int mood;
+  final String? entry;
+  const SubmissionPage ({
+    super.key, 
+    required this.entryWritten, 
+    required this.mood,
+    this.entry });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text("Here's all the stuff you've picked, submit?"),
-          CustomButton(destination: MoodLoggingPage(), text: 'edit mood'),
+          Row(
+            children: [
+              Image.asset('assets/emotions/$mood.png'),
+              CustomButton(
+                destination: MoodLoggingPage(), //pop this to take it back to the previous state instead of starting a new
+                text: 'edit mood'),
+            ],
+          ),
+          
           Visibility(
             visible: entryWritten,
-            child: CustomBackButton(text: 'edit entry'),
+            child: Column(
+              children: [
+                Text(entry!),
+                CustomBackButton(text: 'edit entry'),
+              ],
             ),
-            CustomButton(destination: ViewEntryPage(), text: 'sumbnit!'),
+            ),
+            //CustomButton(destination: ViewEntryPage(), text: 'sumbnit!'),
+            GestureDetector(
+              onTap: () {
+                Map data = 
+                  {
+                  "entry": "$entry", 
+                  "entry_date": "${DateFormat('y-MM-d').format(DateTime.now())}",
+                  "entry_time": "${DateFormat('HH:MM').format(DateTime.now())}",
+                  "rating": mood,
+                  };
+
+                sendData('/entry', data);
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => ViewEntryPage(
+                          mood: '$mood',
+                          entry: entry!
+                        )));
+                  },
+                  child: SizedBox(
+                    width: 200,
+                    height: 80,
+                    child: Stack(
+                      children: [
+                        Image.asset('assets/button_1.png'), // make the image smaller
+                        Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            'submit',
+                            style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
+                            ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
         ],
       ),
     );
   }
 }
 
-class ViewEntryPage extends StatelessWidget {
-  const ViewEntryPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return 
-              Scaffold(
-                body: EntryFormatting(
-                  entry: // access a specific entry from backend
-                      "Today I am feeling very Lorem ipsum odor amet, consectetuer adipiscing elit. Quam ullamcorper lacinia vehicula ornare lacinia interdum tincidunt cras. Est cras facilisis mauris mattis nascetur. Ligula ipsum bibendum himenaeos sed tortor nec. Cras dapibus ridiculus a nibh ridiculus interdum condimentum cursus. Interdum odio sapien vitae, mattis cursus finibus adipiscing massa. Parturient ac proin magna consequat adipiscing adipiscing fusce.\n\nLigula sem habitasse blandit lacinia eleifend sapien libero dolor cubilia. Cras ad cubilia est at fusce vivamus. Volutpat risus tortor duis enim lacinia per aliquam. Justo eleifend id neque purus; dapibus mus vestibulum et dis. Hac dui sollicitudin; luctus vel finibus rutrum nostra. Tristique dui tristique dapibus commodo turpis dolor placerat etiam. Vestibulum cursus urna facilisis interdum fringilla. Scelerisque egestas pellentesque ipsum nulla sem sapien orci torquent mauris.\n\nMalesuada neque taciti tempus maximus ex duis. Sociosqu fringilla porta mattis mattis in class. Ridiculus dui montes tortor porta sollicitudin. Ad dui odio ultrices elit suscipit. Torquent lacus penatibus eros vel nulla pretium inceptos accumsan cursus. Ex egestas netus ridiculus auctor ligula non aptent. Maximus risus vitae fringilla rhoncus nullam varius. Hendrerit inceptos pretium dis; neque mi consequat. Eleifend maximus quisque aptent urna sagittis tortor. Ornare lacus mi lobortis faucibus, faucibus quis elit faucibus.",
-                  mood: "Lorem Ipsum",
-                    ),
-              );
-  }
-}
+// Make a function that updates all the user values
 
 // test unicode and special characters make sure the db can handle it as well
-class EntryWritingPage extends StatelessWidget {
-  const EntryWritingPage({super.key});
+class EntryWritingPage extends StatefulWidget {
+  final int mood;
+  const EntryWritingPage({super.key, required this.mood});
+
+  @override
+  State<EntryWritingPage> createState() => _EntryWritingPageState();
+}
+
+class _EntryWritingPageState extends State<EntryWritingPage> {
+  final entryController = TextEditingController();
+
+  
+  @override
+  void dispose() {
+    entryController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -436,6 +568,7 @@ class EntryWritingPage extends StatelessWidget {
                 color: Color.fromARGB(255, 255, 178, 182),
                 margin: EdgeInsets.all(20),
                 child: TextField(
+                  controller: entryController,
                   decoration: InputDecoration(
                     labelText: 'How are you feeling today?',
                     //border: OutlineInputBorder(),
@@ -443,8 +576,39 @@ class EntryWritingPage extends StatelessWidget {
                 )
                 ),
             ),
-            CustomBackButton(text: "cancel"),
-            CustomButton(destination: SubmissionPage(entryWritten: true,), text: "finish"),
+            Row(
+              children: [
+                CustomBackButton(text: "cancel"),
+                GestureDetector(
+                  onTap: () { // find out how to change the image shown on tap
+                    Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => SubmissionPage(
+                              mood: widget.mood, 
+                              entryWritten: true, 
+                              entry: entryController.text
+                              )
+                            )
+                          );
+                      },
+                      child: SizedBox(
+                        width: 200,
+                        height: 80,
+                        child: Stack(
+                          children: [
+                            Image.asset('assets/button_1.png'), // make the image smaller
+                            Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                'finish',
+                                style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
+                                ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+              ],
+            ),
           ],
         ),
       );
@@ -455,9 +619,8 @@ class EntryWritingPage extends StatelessWidget {
 // Defining custom widgets
 
 
-// Mood Entry is mostly done.
 // - Figure out how to format with paragraph breaks
-class EntryFormatting extends StatelessWidget {
+class ViewEntryPage extends StatelessWidget {
   final today = DateTime.now();
   final DateFormat date = DateFormat('dd MMMM yyy');
   final DateFormat time = DateFormat('H:m');
@@ -465,55 +628,118 @@ class EntryFormatting extends StatelessWidget {
   final String entry;
   final String mood;
 
-  EntryFormatting({super.key, required this.entry, required this.mood});
+  ViewEntryPage({super.key, required this.entry, required this.mood});
 
   @override
   Widget build(BuildContext context) {
     return 
-        Container(
-            // entry space around the page
-            margin: const EdgeInsets.only(top: 30, bottom: 30, right: 30, left: 60),
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              // background styling
-              color: Color.fromARGB(255, 255, 194, 194),
-              borderRadius: BorderRadius.all(Radius.circular(20)),
-            ),
-            // height: 10,
-            child: Align(
-              alignment: Alignment.topLeft,
+        Scaffold(
+          body: Column(
+            children: [
+              LevelBar(),
+              // add the plant that grew for the entry?
+              Container(
+                  margin: const EdgeInsets.only(top: 30, bottom: 30, right: 30, left: 60),
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    // background styling
+                    color: Color.fromARGB(255, 255, 194, 194),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                  child: Stack(
+                    children: [
+                      Column(
+                      children: [
+                        Text(
+                          date.format(today),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20,),
+                          textAlign: TextAlign.left,
+                        ),
+                        Text(
+                          "${time.format(today)} | Mood: $mood \n",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                        Text(
+                          entry,
+                          style: TextStyle(fontSize: 15, letterSpacing: .6),
+                          textAlign: TextAlign.left,
+                        ),
+                      ],
+                    ),
+                    Align(
+                      alignment: Alignment.bottomRight,
+                      child: Image.asset( // find out how to make the image larger
+                        'assets/emotions/$mood.png', 
+                        color: const Color.fromRGBO(255, 255, 255, 0.5),
+                        colorBlendMode: BlendMode.modulate
+                          ),
+                      ), 
+                    ],
+                  ),
+                ),
+                CustomBackButton(text: 'back')
+            ],
+          ),
+        );
+  }
+}
+
+// mini view
+// fix the alignment
+class MiniEntryView extends StatelessWidget {
+  final today = DateTime.now();
+  final DateFormat date = DateFormat('dd MMMM yyy');
+  final DateFormat time = DateFormat('H:m');
+
+  final String entry;
+  final String mood;
+
+  MiniEntryView({super.key, required this.entry, required this.mood});
+
+  @override
+  Widget build(BuildContext context) {
+    return 
+        GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => ViewEntryPage(entry: entry, mood: mood)));
+          },
+          child: Container(
+              margin: const EdgeInsets.only(top: 30, bottom: 30, right: 30, left: 60),
+              padding: const EdgeInsets.all(20),
+              height: 200,
+              decoration: const BoxDecoration(
+                color: Color.fromARGB(255, 255, 194, 194),
+                borderRadius: BorderRadius.all(Radius.circular(10)),
+              ),
               child: Stack(
-                children: [
-                  ListView(
                   children: [
-                    Text(
-                      date.format(today),
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20,),
-                      textAlign: TextAlign.left,
-                    ),
-                    Text(
-                      "${time.format(today)} | Mood: $mood \n",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    Text(
-                      entry,
-                      style: TextStyle(fontSize: 15, letterSpacing: .6),
-                      textAlign: TextAlign.left,
-                    ),
+                    Column(
+                      children: [
+                        Text(
+                        date.format(today),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20,),
+                        textAlign: TextAlign.left,
+                        ),
+                        Text(
+                          "${time.format(today)} | Mood: $mood \n",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                        Text(entry),
+                       ],
+                      ),
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: Image.asset( // find out how to make the image larger
+                      'assets/$mood.png', 
+                      color: const Color.fromRGBO(255, 255, 255, 0.5),
+                      colorBlendMode: BlendMode.modulate
+                        ),
+                    ), 
                   ],
                 ),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Image.asset( // find out how to make the image larger
-                    'assets/mood1.png', 
-                    color: const Color.fromRGBO(255, 255, 255, 0.5),
-                    colorBlendMode: BlendMode.modulate
-                      ),
-                  ), 
-                ],
-              ),
             ),
-          );
+        );
   }
 }
 
@@ -583,7 +809,7 @@ class NavigationDashboard extends StatelessWidget {
                   GestureDetector(
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => ViewEntryPage()),
+                      MaterialPageRoute(builder: (context) => CalendarPage()),
                     );
                   },
                   child: NavigationButton(page: 'calendar')
@@ -650,7 +876,7 @@ class _LevelBarState extends State<LevelBar> {
                       return Container(
                                 color: const Color.fromARGB(255, 255, 157, 170),
                                 child: SizedBox(
-                                  width: snapshot.data![0]['exp'],
+                                  width: snapshot.data![0]['exp'] / 10,
                                   height: 30,
                                 ),
                               );

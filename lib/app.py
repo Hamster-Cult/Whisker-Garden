@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import *
 from json import *
 
-postgresql_url = "postgresql://:Gardens@localhost/whisker"
+postgresql_url = "postgresql://:@localhost/whisker"
 
 engine = create_engine(postgresql_url)
 
@@ -45,13 +45,6 @@ def on_startup():
     create_user()
     create_garden()
 
-@app.post("/entry/")
-def create_entry(entry: Entries, session: SessionDep) -> Entries:
-    session.add(entry)
-    session.commit()
-    session.refresh(entry)
-    return entry
-
 @app.get("/user/plant")
 def get_plant_asset():
     with Session(engine) as session:
@@ -64,17 +57,29 @@ def get_plant_asset():
 @app.get("/exp")
 def get_exp():
     with Session(engine) as session:
-        return session.exec(select(User)).all()
+        return session.exec(select(AppUser)).all()
     
 @app.get("/garden/last")
 def get_exp():
     with Session(engine) as session:
         return session.exec(select(Garden)).all()
 
+
+@app.post("/entry")
+def create_entry(entry: Entries, session: SessionDep):
+    with Session(engine) as session:
+        session.add(entry)
+        session.commit()
+
+@app.get("/entries")
+def get_entries(session: SessionDep):
+    with Session(engine) as session:
+        return session.exec(select(Entries).all())
+
 # let the user write their username?
 def create_user():
     with Session(engine) as session:
-        user = User(username='default user', plant_id=1, level=1, exp=200)
+        user = AppUser(username='default user', plant_id=1, level=1, exp=200)
         session.add(user)
         session.commit()
 
