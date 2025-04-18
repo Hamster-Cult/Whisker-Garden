@@ -15,7 +15,7 @@ class AppUser(SQLModel, table=True):
 class UserEntries(SQLModel, table=True):
     user_id: int = Field(foreign_key="appuser.user_id", primary_key=True)
     entry_id: int = Field(foreign_key="entries.entry_id", primary_key=True)
-    
+
 class Plant(SQLModel, table=True):
     plant_id: int | None = Field(default=None, primary_key=True)
     plant_type: str = Field(max_length=20, nullable=False)

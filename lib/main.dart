@@ -120,9 +120,7 @@ class _HomePageState extends State<HomePage> {
                           ],
                         );
                         }
-
                         return Text(message);
-
                       }
 
                       else if(snapshot.hasError) {
@@ -155,6 +153,7 @@ class ToDoPage extends StatelessWidget {
               borderRadius: BorderRadius.all(Radius.circular(20)),
             ),
           ),
+          // create new task text
           CustomButton(destination: TaskCreationPage(), text: "Create new task"),
         ],
       ),
@@ -281,6 +280,7 @@ class StatsPage extends StatelessWidget {
   }
 }
 
+// shelf page
 class GardenShelfPage extends StatefulWidget {
   const GardenShelfPage({super.key});
 
@@ -288,6 +288,7 @@ class GardenShelfPage extends StatefulWidget {
   State<GardenShelfPage> createState() => _GardenShelfPageState();
 }
 
+// has the information for the plants on the shelf
 class _GardenShelfPageState extends State<GardenShelfPage> {
   // find out how to dynamically resize images
 
@@ -349,6 +350,8 @@ class _GardenShelfPageState extends State<GardenShelfPage> {
 
 // functional and transitional pages
 
+// mood logging page
+// this is the page where the user can log their mood
 class MoodLoggingPage extends StatelessWidget {
   const MoodLoggingPage({super.key});
 
