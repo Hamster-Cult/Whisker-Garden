@@ -1,4 +1,4 @@
-# file for all the datab
+# file for database this is where the database is created and the tables are defined
 
 from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Query
