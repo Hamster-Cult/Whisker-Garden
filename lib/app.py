@@ -41,6 +41,7 @@ app.add_middleware(
     allow_headers=["*"], # Allows all headers
 )
 
+# runs when the server starts up
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
@@ -60,6 +61,10 @@ def get_plant_asset():
     #maturity = session.get(Garden, maturity)
     #if not hero:
         #raise HTTPException(status_code=404, detail="Hero not found")
+
+
+# defines each path in a link and what it does
+# currently just returns the data in the database
 
 @app.get("/exp")
 def get_exp():
@@ -82,6 +87,9 @@ def create_entry(entry: Entries, session: SessionDep):
 def get_entries(session: SessionDep):
     with Session(engine) as session:
         return session.exec(select(Entries).all())
+
+
+# example data used, default data.
 
 # let the user write their username?
 def create_user():
