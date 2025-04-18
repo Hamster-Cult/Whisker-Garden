@@ -9,6 +9,7 @@ void main() {
   runApp(const MainApp());
 }
 
+// main app widget
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
@@ -27,6 +28,7 @@ class MainApp extends StatelessWidget {
 
 
 // loading page
+// this is the first page the user sees when they open the app
 class TitlePage extends StatelessWidget {
   const TitlePage({super.key});
   
@@ -34,7 +36,7 @@ class TitlePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
         onTap: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) => LandingPage()));
+          Navigator.of(context).push(MaterialPageRoute(builder: (context) => HomePage()));
         },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -48,14 +50,14 @@ class TitlePage extends StatelessWidget {
 }
 
 // default page
-class LandingPage extends StatefulWidget {
-  const LandingPage({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<LandingPage> createState() => _LandingPageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _LandingPageState extends State<LandingPage> {
+class _HomePageState extends State<HomePage> {
   final today = DateTime.now();
   late Future<List<dynamic>> data;
   // make the messages more dynamic based on how long your streak has been?
@@ -419,7 +421,7 @@ class MoodLoggingPage extends StatelessWidget {
               ],
             ),
             // fetch plant image
-            CustomButton(destination: LandingPage(), text: 'cancel'),
+            CustomButton(destination: HomePage(), text: 'cancel'),
           ],
         ),
       ),
@@ -801,7 +803,7 @@ class NavigationDashboard extends StatelessWidget {
                   GestureDetector(
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => LandingPage()),
+                      MaterialPageRoute(builder: (context) => HomePage()),
                     );
                   },
                   child: NavigationButton(page: 'today')
