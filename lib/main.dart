@@ -31,7 +31,7 @@ class MainApp extends StatelessWidget {
 // this is the first page the user sees when they open the app
 class TitlePage extends StatelessWidget {
   const TitlePage({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -49,7 +49,7 @@ class TitlePage extends StatelessWidget {
   }
 }
 
-// default page
+// default page after the title page
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -57,12 +57,13 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
+
 class _HomePageState extends State<HomePage> {
   final today = DateTime.now();
   late Future<List<dynamic>> data;
   // make the messages more dynamic based on how long your streak has been?
   String message = "Your plant is doing great!";
-  
+
 
   @override
   void initState() {
@@ -109,7 +110,7 @@ class _HomePageState extends State<HomePage> {
                         lastWatered = DateFormat('dd MMMM yyy').format(formatted);
                         String today = DateFormat('dd MMMM yyy').format(DateTime.now());
                         print(DateFormat('HH:MM').format(DateTime.now()));
-                        
+
                         if (today != lastWatered) {
                           message = "Water your plant today?";
                           return Column(
@@ -121,9 +122,9 @@ class _HomePageState extends State<HomePage> {
                         }
 
                         return Text(message);
-                        
+
                       }
-                        
+
                       else if(snapshot.hasError) {
                         return Text('Error: ${snapshot.error}');
                       }
@@ -136,6 +137,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+// to do list page
 class ToDoPage extends StatelessWidget {
   const ToDoPage({super.key});
 
@@ -160,6 +162,7 @@ class ToDoPage extends StatelessWidget {
   }
 }
 
+// task creation page
 class TaskCreationPage extends StatelessWidget {
   const TaskCreationPage ({super.key});
 
@@ -176,6 +179,7 @@ class TaskCreationPage extends StatelessWidget {
 }
 
 // working on this it doesn't work rn
+// this is the calendar page where the user can see their entries
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
 
@@ -184,7 +188,7 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
- 
+
   int _totalEntries = 9;
   List<List<MiniEntryView>> entries = [];
 
@@ -192,7 +196,7 @@ class _CalendarPageState extends State<CalendarPage> {
   // 'page' in the form of a list to store the widgets
   void makeEntryPages() {
     if (_totalEntries == 0) {
-      //make a page that promprs the user to make an entry
+      //make a page that prompts the user to make an entry
     }
     else {
       for (var i = 0; i < _totalEntries; i+=4) {
@@ -202,7 +206,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   void fillEntryPages() async {
-    
+
     for (var i = 0; i < 3; i++) { // each page has a max of 4 entries shown at a time
       entries[_currentPage].add(
         MiniEntryView(entry: entry, mood: mood)
@@ -258,6 +262,8 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 }
 
+
+// statistics page
 class StatsPage extends StatelessWidget {
   const StatsPage({super.key});
 
@@ -310,7 +316,7 @@ class _GardenShelfPageState extends State<GardenShelfPage> {
   void _onSwipeRight() {setState(() {
     if (_currentShelf != 0) {
           _currentShelf --;
-        } 
+        }
       })
     ;}
 
@@ -452,7 +458,7 @@ class WriteEntryPromptPage extends StatelessWidget {
             CustomButton(destination: SubmissionPage(mood: mood, entryWritten: false,), text: 'no')
             ],
           ),
-          
+
         ],
       ),
     );
@@ -469,8 +475,8 @@ class SubmissionPage extends StatelessWidget {
   final int mood;
   final String? entry;
   const SubmissionPage ({
-    super.key, 
-    required this.entryWritten, 
+    super.key,
+    required this.entryWritten,
     required this.mood,
     this.entry });
 
@@ -488,7 +494,7 @@ class SubmissionPage extends StatelessWidget {
                 text: 'edit mood'),
             ],
           ),
-          
+
           Visibility(
             visible: entryWritten,
             child: Column(
@@ -501,9 +507,9 @@ class SubmissionPage extends StatelessWidget {
             //CustomButton(destination: ViewEntryPage(), text: 'sumbnit!'),
             GestureDetector(
               onTap: () {
-                Map data = 
+                Map data =
                   {
-                  "entry": "$entry", 
+                  "entry": "$entry",
                   "entry_date": "${DateFormat('y-MM-d').format(DateTime.now())}",
                   "entry_time": "${DateFormat('HH:MM').format(DateTime.now())}",
                   "rating": mood,
@@ -553,7 +559,7 @@ class EntryWritingPage extends StatefulWidget {
 class _EntryWritingPageState extends State<EntryWritingPage> {
   final entryController = TextEditingController();
 
-  
+
   @override
   void dispose() {
     entryController.dispose();
@@ -585,8 +591,8 @@ class _EntryWritingPageState extends State<EntryWritingPage> {
                   onTap: () { // find out how to change the image shown on tap
                     Navigator.of(context).push(
                             MaterialPageRoute(builder: (context) => SubmissionPage(
-                              mood: widget.mood, 
-                              entryWritten: true, 
+                              mood: widget.mood,
+                              entryWritten: true,
                               entry: entryController.text
                               )
                             )
@@ -634,7 +640,7 @@ class ViewEntryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return 
+    return
         Scaffold(
           body: Column(
             children: [
@@ -671,11 +677,11 @@ class ViewEntryPage extends StatelessWidget {
                     Align(
                       alignment: Alignment.bottomRight,
                       child: Image.asset( // find out how to make the image larger
-                        'assets/emotions/$mood.png', 
+                        'assets/emotions/$mood.png',
                         color: const Color.fromRGBO(255, 255, 255, 0.5),
                         colorBlendMode: BlendMode.modulate
                           ),
-                      ), 
+                      ),
                     ],
                   ),
                 ),
@@ -700,7 +706,7 @@ class MiniEntryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return 
+    return
         GestureDetector(
           onTap: () {
             Navigator.of(context).push(
@@ -733,11 +739,11 @@ class MiniEntryView extends StatelessWidget {
                   Align(
                     alignment: Alignment.bottomRight,
                     child: Image.asset( // find out how to make the image larger
-                      'assets/$mood.png', 
+                      'assets/$mood.png',
                       color: const Color.fromRGBO(255, 255, 255, 0.5),
                       colorBlendMode: BlendMode.modulate
                         ),
-                    ), 
+                    ),
                   ],
                 ),
             ),
@@ -869,8 +875,8 @@ class _LevelBarState extends State<LevelBar> {
           ),
 
         // Level Bar
-        Stack( 
-          children: [
+          Stack(
+            children: [
             FutureBuilder<List<dynamic>>( // Exp bar
               future: _exp,
               builder: (context, snapshot) {
@@ -889,7 +895,7 @@ class _LevelBarState extends State<LevelBar> {
                 return Text('fetching....');
                 }
               ),
-            Container( // Level bar border
+          Container( // Level bar border
               decoration: BoxDecoration(
                 border: Border.all(
                   color: Color.fromARGB(192, 58, 58, 58),
@@ -901,9 +907,8 @@ class _LevelBarState extends State<LevelBar> {
                 height: 25,
                 ),
               ),
-            ],
-          ),
-        
+          ],
+        ),
       ],
     );
   }
