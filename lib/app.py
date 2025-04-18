@@ -1,3 +1,5 @@
+ 
+
 from typing import Annotated, Union
 from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select
@@ -5,14 +7,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import *
 from json import *
 
+# url for the database
 postgresql_url = "postgresql://:@localhost/whisker"
 
+# create the database engine
 engine = create_engine(postgresql_url)
 
+# create the database tables
+# takes from database.py
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
-
+# makes an instance of the database and makes sure it's fastapi
 def get_session():
     with Session(engine) as session:
         yield session
@@ -21,6 +27,7 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 app = FastAPI()
 
+# database, server, and app are on all different ports, so this allows cross-communication
 app.add_middleware(
 
     CORSMiddleware,
