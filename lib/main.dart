@@ -849,11 +849,9 @@ class LevelBar extends StatefulWidget {
 class _LevelBarState extends State<LevelBar> {
   // CURRENTLY HAS A LIMIT OF 200O EXP BEFORE IT OVERFLOWS
   // fix the math
-  late Future<List<dynamic>> _exp = query(
-    'SELECT users.exp, users.level FROM users'
-    );
+  late Future<List<dynamic>> _exp = getData('/exp');
 
-  @override
+  @override 
   void initState() {
     super.initState();
     _exp = getData('/exp');
@@ -870,14 +868,14 @@ class _LevelBarState extends State<LevelBar> {
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               return Text(
-              "LV ${snapshot.data![0][0]}:",
+              "LV ${snapshot.data![0]['level']}:",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15));
               }
             else if (snapshot.hasError) {
-              return Text('WOMP WOMP');
+              return Text("${snapshot.error} WOMP WOMP");
             }
             return Text('fetching....');
-            }
+            } 
           ),
 
         // Level Bar
@@ -890,7 +888,7 @@ class _LevelBarState extends State<LevelBar> {
                       return Container(
                                 color: const Color.fromARGB(255, 255, 157, 170),
                                 child: SizedBox(
-                                  width: snapshot.data![0][0] / 10,
+                                  width: snapshot.data![0]['exp'] / 10,
                                   height: 30,
                                 ),
                               );
