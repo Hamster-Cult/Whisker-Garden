@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import './app.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // For date and time
@@ -187,7 +188,7 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
-
+/*
   int _totalEntries = 9;
   List<List<MiniEntryView>> entries = [];
 
@@ -214,16 +215,16 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   int _currentPage = 0;
-
+*/
   @override
   Widget build(BuildContext context) {
-    List<Widget> displayEntries = entries[_currentPage];
+    //List<Widget> displayEntries = entries[_currentPage];
 
     return Scaffold(
       body: Column(
         children: [
           NavigationDashboard(),
-          LevelBar(),
+          LevelBar(),/*
           Column(children: displayEntries),
           Row(
             children: [
@@ -254,7 +255,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   )
                 ),
             ],
-          ),
+          ),*/
         ],
       ),
     );
@@ -848,7 +849,9 @@ class LevelBar extends StatefulWidget {
 class _LevelBarState extends State<LevelBar> {
   // CURRENTLY HAS A LIMIT OF 200O EXP BEFORE IT OVERFLOWS
   // fix the math
-  late Future<List<dynamic>> _exp = getData('/exp');
+  late Future<List<dynamic>> _exp = query(
+    'SELECT users.exp, users.level FROM users'
+    );
 
   @override
   void initState() {
@@ -867,7 +870,7 @@ class _LevelBarState extends State<LevelBar> {
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               return Text(
-              "LV ${snapshot.data![0]['level']}:",
+              "LV ${snapshot.data![0][0]}:",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15));
               }
             else if (snapshot.hasError) {
@@ -887,7 +890,7 @@ class _LevelBarState extends State<LevelBar> {
                       return Container(
                                 color: const Color.fromARGB(255, 255, 157, 170),
                                 child: SizedBox(
-                                  width: snapshot.data![0]['exp'] / 10,
+                                  width: snapshot.data![0][0] / 10,
                                   height: 30,
                                 ),
                               );
