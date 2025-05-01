@@ -46,34 +46,54 @@ def on_startup():
     # have plants and stuff in the db from a fresh install
     # why do we recreate the db and tables whenever the server is started?
     # shouldn't we have it static???
-    create_plants()
-    create_garden()
-    create_user()
-    create_garden()
+    #create_plants()
+    #create_garden()
+    #create_user()
+   # create_garden()
 
 @app.get("/user/plant")
 def get_plant_asset():
     with Session(engine) as session:
         return session.exec(select(Plant)).all()
-    #plant_id = session.get(Garden, plant_id)
-    #maturity = session.get(Garden, maturity)
     #if not hero:
         #raise HTTPException(status_code=404, detail="Hero not found")
 
 
 # defines each path in a link and what it does
-# currently just returns the data in the database
 
 @app.get("/exp")
 def get_exp():
     with Session(engine) as session:
-        return session.exec(select(AppUser)).all()
+        results = session.exec(
+            select(
+                AppUser.level, 
+                AppUser.exp)
+            .limit(1)
+            ).all()
+        results_json = []
+        for level, exp in results:
+            results_json.append({
+                "level": level,
+                "exp": exp})
+        return results_json
     
-@app.get("/garden/last")
+@app.get("/garden/current-details")
 def get_exp():
     with Session(engine) as session:
-        return session.exec(select(Garden)).all()
-
+        results = session.exec(
+            select(
+                Garden.plant_id, 
+                Garden.last_watered, 
+                Garden.maturity)
+            .where(Garden.archived == False)
+            ).all()
+        results_json = []
+        for plant_id, last_watered, maturity in results:
+            results_json.append({
+                "plant_id": plant_id,
+                "last_watered": last_watered, 
+                "maturity": maturity})
+        return results_json
 
 @app.post("/entry")
 def create_entry(entry: Entries, session: SessionDep):
@@ -81,11 +101,14 @@ def create_entry(entry: Entries, session: SessionDep):
         session.add(entry)
         session.commit()
 
-@app.get("/entries")
-def get_entries(session: SessionDep):
+@app.get("/entries/{page_number}")
+def get_entries(page_number: int, session: SessionDep):
     with Session(engine) as session:
-        return session.exec(select(Entries).all())
-
+        offset = 4 * (page_number - 1)
+        return session.exec(
+            select(Entries)
+            .offset(offset)
+            .limit(4)).all()
 
 # example data used, default data.
 

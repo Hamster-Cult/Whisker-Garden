@@ -69,7 +69,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    data = getData('/garden/last');
+    data = getData('/garden/current-details');
   }
 
   @override
@@ -81,7 +81,7 @@ class _HomePageState extends State<HomePage> {
                 Stack(
                   children: [
                     FutureBuilder<List<dynamic>>(
-                      future: getData('/user/plant'),
+                      future: getData('/garden/current-details'),
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
                           // fetch the 0 aswell
@@ -103,14 +103,13 @@ class _HomePageState extends State<HomePage> {
                 ),
                 Align(alignment: Alignment.center, child: LevelBar()),
                 FutureBuilder<List<dynamic>>( // fetching the date to notify the user if they need to water the plant or not
-                    future: getData('/garden/last'),
+                    future: getData('/garden/current-details'),
                     builder: (context, snapshot) {
                       if (snapshot.hasData) {
                         String lastWatered = snapshot.data![0]['last_watered'];
                         DateTime formatted = DateTime.parse(lastWatered);
                         lastWatered = DateFormat('dd MMMM yyy').format(formatted);
                         String today = DateFormat('dd MMMM yyy').format(DateTime.now());
-                        print(DateFormat('HH:MM').format(DateTime.now()));
 
                         if (today != lastWatered) {
                           message = "Water your plant today?";
@@ -127,7 +126,7 @@ class _HomePageState extends State<HomePage> {
                       else if(snapshot.hasError) {
                         return Text('Error: ${snapshot.error}');
                       }
-                      return Text(message);
+                      return Text('fetching failed, refresh?');
                       }
                     ),
                   ],
@@ -188,74 +187,73 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
-/*
-  int _totalEntries = 9;
-  List<List<MiniEntryView>> entries = [];
-
-  // takes the total number of entries in the db and makes a new
-  // 'page' in the form of a list to store the widgets
-  void makeEntryPages() {
-    if (_totalEntries == 0) {
-      //make a page that prompts the user to make an entry
-    }
-    else {
-      for (var i = 0; i < _totalEntries; i+=4) {
-        entries.add([]);
-      }
-    }
-  }
+  List<Widget> entries = [];
+  int _currentPage = 1;
+  //make a page that prompts the user to make an entry if there are none
 
   void fillEntryPages() async {
+    final List<dynamic> data = await getData('/entries/$_currentPage');
 
-    for (var i = 0; i < 3; i++) { // each page has a max of 4 entries shown at a time
-      entries[_currentPage].add(
-        MiniEntryView(entry: entry, mood: mood)
-      );
+    for (var item in data) { // each page has a max of 4 entries shown at a time
+      setState(() {
+        entries.add(MiniEntryView(entry: item['entry'], mood: item['rating'].toString()));
+      });
     }
   }
 
-  int _currentPage = 0;
-*/
+  @override
+  void initState() {
+    super.initState();
+    fillEntryPages();
+  }
+
   @override
   Widget build(BuildContext context) {
-    //List<Widget> displayEntries = entries[_currentPage];
-
     return Scaffold(
       body: Column(
         children: [
           NavigationDashboard(),
-          LevelBar(),/*
-          Column(children: displayEntries),
+          LevelBar(),
+          Column(children: entries), // change to ListView? perhaps?
           Row(
             children: [
               GestureDetector(
                 onTap: () {
                   setState(() {
-                    if (_currentPage > 0) {_currentPage --;}
-                  });
+                      _currentPage --;
+                      fillEntryPages();}
+                  );
                 },
                 child: Container(
+                  margin: EdgeInsets.all(30),
                   width: 100,
                   height: 70,
                   color: Colors.blueGrey,
-                  child: Text('<'),
+                  child: Text(
+                    '<',
+                    style: TextStyle(fontSize: 60)),
                   )
                 ),
                 GestureDetector(
                 onTap: () {
                   setState(() {
-                    if (_currentPage < entries.length) {_currentPage ++;} // fetch the total number of entries and divide by 4
-                  });
+                    // error handling if it goes to far ahead or back
+                    _currentPage ++;
+                      fillEntryPages();}
+                  );
                 },
                 child: Container(
+                  margin: EdgeInsets.all(30),
                   width: 100,
                   height: 70,
                   color: Colors.blueGrey,
-                  child: Text('>'),
+                  child: Text(
+                    '>',
+                    style: TextStyle(fontSize: 60)),
                   )
                 ),
             ],
-          ),*/
+          ),
         ],
       ),
     );
@@ -523,7 +521,8 @@ class SubmissionPage extends StatelessWidget {
                 Navigator.of(context).push(
                         MaterialPageRoute(builder: (context) => ViewEntryPage(
                           mood: '$mood',
-                          entry: entry!
+                          entry: entry!,
+                          fromSubmission: true,
                         )));
                   },
                   child: SizedBox(
@@ -633,6 +632,7 @@ class _EntryWritingPageState extends State<EntryWritingPage> {
 
 // - Figure out how to format with paragraph breaks
 class ViewEntryPage extends StatelessWidget {
+  final bool fromSubmission;
   final today = DateTime.now();
   final DateFormat date = DateFormat('dd MMMM yyy');
   final DateFormat time = DateFormat('H:m');
@@ -640,10 +640,20 @@ class ViewEntryPage extends StatelessWidget {
   final String entry;
   final String mood;
 
-  ViewEntryPage({super.key, required this.entry, required this.mood});
+  ViewEntryPage({super.key, 
+  required this.entry, 
+  required this.mood,
+  required this.fromSubmission});
 
   @override
   Widget build(BuildContext context) {
+    final Widget backButton;
+    if (fromSubmission) {
+      backButton = CustomButton(
+        destination: HomePage(),
+        text: 'home');
+    } else {backButton = CustomBackButton(text: 'back');}
+
     return
         Scaffold(
           body: Column(
@@ -689,7 +699,7 @@ class ViewEntryPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                CustomBackButton(text: 'back')
+              backButton,
             ],
           ),
         );
@@ -714,7 +724,7 @@ class MiniEntryView extends StatelessWidget {
         GestureDetector(
           onTap: () {
             Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => ViewEntryPage(entry: entry, mood: mood)));
+                      MaterialPageRoute(builder: (context) => ViewEntryPage(entry: entry, mood: mood, fromSubmission: false,)));
           },
           child: Container(
               margin: const EdgeInsets.only(top: 30, bottom: 30, right: 30, left: 60),
