@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
-import './app.dart';
+import './helper.dart';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // For date and time
@@ -106,6 +106,15 @@ class _HomePageState extends State<HomePage> {
                     future: getData('/garden/current-details'),
                     builder: (context, snapshot) {
                       if (snapshot.hasData) {
+                        if (snapshot.data![0]['plant_exp'] == 0) {
+                          return Column(
+                          children: [
+                            Text("Water your new sapling!"),
+                            CustomButton(destination: MoodLoggingPage(),
+                            text: 'water plant')
+                            ]
+                          );
+                        }
                         String lastWatered = snapshot.data![0]['last_watered'];
                         DateTime formatted = DateTime.parse(lastWatered);
                         lastWatered = DateFormat('dd MMMM yyy').format(formatted);
@@ -121,9 +130,7 @@ class _HomePageState extends State<HomePage> {
                         );
                         }
                         return Text(message);
-                      }
-
-                      else if(snapshot.hasError) {
+                      } else if(snapshot.hasError) {
                         return Text('Error: ${snapshot.error}');
                       }
                       return Text('fetching failed, refresh?');
@@ -857,8 +864,6 @@ class LevelBar extends StatefulWidget {
 }
 
 class _LevelBarState extends State<LevelBar> {
-  // CURRENTLY HAS A LIMIT OF 200O EXP BEFORE IT OVERFLOWS
-  // fix the math
   late Future<List<dynamic>> _exp = getData('/exp');
 
   @override 
@@ -882,31 +887,32 @@ class _LevelBarState extends State<LevelBar> {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15));
               }
             else if (snapshot.hasError) {
-              return Text("${snapshot.error} WOMP WOMP");
+              return Text("failed to fetch data: ${snapshot.error}");
             }
-            return Text('fetching....');
+            return Text('something went wrong try refreshing');
             } 
           ),
 
-        // Level Bar
+        // exp bar
           Stack(
             children: [
             FutureBuilder<List<dynamic>>( // Exp bar
               future: _exp,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
+                  double exp = snapshot.data![0]['exp']; // handle higher levels
                       return Container(
                                 color: const Color.fromARGB(255, 255, 157, 170),
                                 child: SizedBox(
-                                  width: snapshot.data![0]['exp'] / 10,
+                                  width: exp * (4/3), // multiplied by 4/3 to fill into 200px
                                   height: 30,
                                 ),
                               );
                             }
                 else if (snapshot.hasError) {
-                  return Text('WOMP WOMP');
+                  return Text('failed to get exp: ${snapshot.error}');
                 }
-                return Text('fetching....');
+                return Text('something went wrong try refreshing');
                 }
               ),
           Container( // Level bar border

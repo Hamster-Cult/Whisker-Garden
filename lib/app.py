@@ -39,17 +39,15 @@ app.add_middleware(
     allow_headers=["*"], # Allows all headers
 )
 
-# runs when the server starts up
-@app.on_event("startup")
+
+@app.get("/setup") # setup database with inserts
 def on_startup():
     create_db_and_tables()
-    # have plants and stuff in the db from a fresh install
-    # why do we recreate the db and tables whenever the server is started?
-    # shouldn't we have it static???
-    #create_plants()
-    #create_garden()
-    #create_user()
-   # create_garden()
+    create_plants()
+    create_garden()
+    create_user()
+    create_garden()
+    create_goals()
 
 @app.get("/user/plant")
 def get_plant_asset():
@@ -84,14 +82,18 @@ def get_exp():
             select(
                 Garden.plant_id, 
                 Garden.last_watered, 
-                Garden.maturity)
+                Garden.maturity,
+                Garden.plant_exp,
+                Garden.archived)
             .where(Garden.archived == False)
             ).all()
         results_json = []
-        for plant_id, last_watered, maturity in results:
+        for plant_id, last_watered, maturity, archived, plant_exp in results:
             results_json.append({
                 "plant_id": plant_id,
-                "last_watered": last_watered, 
+                "last_watered": last_watered,
+                "archived": plant_exp, # no clue why thse two are swapped???
+                "plant_exp": archived,
                 "maturity": maturity})
         return results_json
 
@@ -112,30 +114,89 @@ def get_entries(page_number: int, session: SessionDep):
 
 # example data used, default data.
 
+# figure out a way to initialize the app
 # let the user write their username?
+# allow the user to pick from 3 different starting plants
 def create_user():
     with Session(engine) as session:
-        user = AppUser(username='default user', plant_id=1, level=1, exp=200)
+        user = AppUser(
+            username='test user',
+            plant_id=1,
+            level=1,
+            exp=0)
         session.add(user)
         session.commit()
 
 def create_plants():
     with Session(engine) as session:
-        plant_1 = Plant(plant_type='tulips', unlocked=True) # default plant
-        plant_2 = Plant(plant_type='hibiscus')
+        plant_1 = Plant(
+            plant_type='tulips',
+            unlocked=True) # default plant
+        plant_2 = Plant(
+            plant_type='hibiscus')
+        plant_3 = Plant(
+            plant_type='hydrengea')
+        plant_4 = Plant(
+            plant_type='wisteria')
+        plant_5 = Plant(
+            plant_type='cherry blossom')
+        plant_6 = Plant(
+            plant_type='rose')
+        plant_7 = Plant(
+            plant_type='bluebell')
+        plant_8 = Plant(
+            plant_type='lily of the valley')
+        plant_9 = Plant(
+            plant_type='spider lily')
+        plant_10 = Plant(
+            plant_type='aster')
 
-        session.add(plant_1)
-        session.add(plant_2)
+        plants = [plant_1, plant_2, plant_3, plant_4, plant_5, plant_6, plant_7, plant_8, plant_9, plant_10]
+        for plant in plants:
+            session.add(plant)
         session.commit()
 
 def create_garden():
     with Session(engine) as session:
-        garden_plant = Garden(
+        default_plant = Garden(
             plant_id=1, 
-            name='default tulip', 
+            name='ponyo', 
             archived=False, 
-            maturity=2, 
+            maturity=2)
+        pre_built_plant = Garden(
+            plant_id=1, 
+            name='sunny', 
+            archived=True, 
+            maturity=5,
+            plant_exp=150,
             last_watered='2025-04-03')
         
-        session.add(garden_plant)
+        session.add(pre_built_plant)
+        session.add(default_plant)
+        session.commit()
+
+# pre-designed goals
+def create_goals():
+    with Session(engine) as session:
+        goal_1 = Goals(
+            plant_id=1,
+            name='hydrate',
+            desc='drink 3 cups a day',
+            exp_increase=30
+        )
+        goal_2 = Goals(
+            plant_id=1,
+            name='stretch',
+            exp_increase=50
+        )
+        goal_3 = Goals(
+            plant_id=1,
+            name='touch grass',
+            desc='I know what you are',
+            exp_increase=100
+        )
+        goals = [goal_1, goal_2, goal_3]
+        
+        for goal in goals:
+            session.add(goal)
         session.commit()
