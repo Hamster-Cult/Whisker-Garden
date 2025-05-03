@@ -46,7 +46,6 @@ def on_startup():
     create_plants()
     create_garden()
     create_user()
-    create_garden()
     create_goals()
 
 @app.get("/user/plant")
@@ -84,23 +83,49 @@ def get_exp():
                 Garden.last_watered, 
                 Garden.maturity,
                 Garden.plant_exp,
+                Garden.garden_slot,
                 Garden.archived)
             .where(Garden.archived == False)
             ).all()
         results_json = []
-        for plant_id, last_watered, maturity, archived, plant_exp in results:
+        for plant_id, last_watered, maturity, plant_exp, garden_slot, archived in results:
             results_json.append({
                 "plant_id": plant_id,
                 "last_watered": last_watered,
-                "archived": plant_exp, # no clue why thse two are swapped???
-                "plant_exp": archived,
-                "maturity": maturity})
+                "maturity": maturity,
+                "plant_exp": plant_exp,
+                "garden_slot": garden_slot,
+                "archived": archived,
+                })
         return results_json
 
 @app.post("/entry")
 def create_entry(entry: Entries, session: SessionDep):
     with Session(engine) as session:
         session.add(entry)
+        session.commit()
+
+@app.post('/water')
+def water_plant(user: AppUser, session: SessionDep):
+    with Session(engine) as session:
+        dbUser = session.exec(
+            select(AppUser)
+            .where(AppUser.user_id == 1)).one()
+        
+        dbUser.level = user.level
+        dbUser.exp = user.exp
+        session.add(dbUser)
+        session.commit()
+
+@app.post('/water/plant')
+def water_plant(plant: Garden, session: SessionDep):
+    with Session(engine) as session:
+        dbGarden = session.exec(select(Garden).where(Garden.archived == False)).one()
+        
+        dbGarden.maturity = plant.maturity
+        dbGarden.plant_exp = plant.plant_exp
+        dbGarden.last_watered = plant.last_watered
+        session.add(dbGarden)
         session.commit()
 
 @app.get("/entries/{page_number}")
@@ -112,6 +137,11 @@ def get_entries(page_number: int, session: SessionDep):
             .offset(offset)
             .limit(4)).all()
 
+@app.get("/user")
+def get_user_data():
+    with Session(engine) as session:
+        return session.exec(select(AppUser).where(AppUser.user_id == 1)).all()
+
 # example data used, default data.
 
 # figure out a way to initialize the app
@@ -121,7 +151,7 @@ def create_user():
     with Session(engine) as session:
         user = AppUser(
             username='test user',
-            plant_id=1,
+            garden_slot=2,# make sure it's linked properly
             level=1,
             exp=0)
         session.add(user)
@@ -130,8 +160,7 @@ def create_user():
 def create_plants():
     with Session(engine) as session:
         plant_1 = Plant(
-            plant_type='tulips',
-            unlocked=True) # default plant
+            plant_type='tulips')
         plant_2 = Plant(
             plant_type='hibiscus')
         plant_3 = Plant(
@@ -145,7 +174,8 @@ def create_plants():
         plant_7 = Plant(
             plant_type='bluebell')
         plant_8 = Plant(
-            plant_type='lily of the valley')
+            plant_type='lily of the valley',
+            unlocked=True) # default
         plant_9 = Plant(
             plant_type='spider lily')
         plant_10 = Plant(
@@ -159,12 +189,12 @@ def create_plants():
 def create_garden():
     with Session(engine) as session:
         default_plant = Garden(
-            plant_id=1, 
+            plant_id=8, 
             name='ponyo', 
             archived=False, 
-            maturity=2)
+            maturity=1)
         pre_built_plant = Garden(
-            plant_id=1, 
+            plant_id=8, 
             name='sunny', 
             archived=True, 
             maturity=5,

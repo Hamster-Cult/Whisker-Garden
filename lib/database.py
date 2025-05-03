@@ -7,7 +7,7 @@ from datetime import date, time
 
 class AppUser(SQLModel, table=True):
    user_id: int | None = Field(default=None, primary_key=True)
-   plant_id: int = Field(foreign_key="plant.plant_id", nullable=False)
+   garden_slot: int = Field(foreign_key="garden.garden_slot", nullable=False)
    username: str = Field(max_length=20, nullable=False)
    level: int = Field (nullable=False, min_length=0) # got rid of int
    exp: int = Field (nullable=False, min_length=0)

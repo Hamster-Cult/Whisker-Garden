@@ -86,8 +86,7 @@ class _HomePageState extends State<HomePage> {
                         if (snapshot.hasData) {
                           // fetch the 0 aswell
                           int plantID = snapshot.data![0]['plant_id'];
-                          //int plantAge = snapshot.data!['plantMaturity'];
-                          int plantAge = 2;
+                          int plantAge = snapshot.data![0]['maturity'];
                           String plantPath = "/$plantID/$plantAge.png";
 
                           return Image.asset("assets/plants$plantPath");
@@ -125,6 +124,13 @@ class _HomePageState extends State<HomePage> {
                           return Column(
                           children: [
                           Text(message), CustomButton(destination: MoodLoggingPage(), text: 'yes!')
+                          // allow the user to write more than one entry per day?
+                          ],
+                        );
+                        } else { //delete this lol just for testing rn
+                          return Column(
+                          children: [
+                          Text(message + " (this is just to test the exp)"), CustomButton(destination: MoodLoggingPage(), text: 'yes!')
                           // allow the user to write more than one entry per day?
                           ],
                         );
@@ -479,7 +485,7 @@ class WriteEntryPromptPage extends StatelessWidget {
 // okay I'm barely functional rn I have no idea what I'm writing so the code is probably trash but uhm
 // change the destination page if you don't write an entry and just log your mood
 // this probably has implications for the db but I can't think aaaaa
-class SubmissionPage extends StatelessWidget {
+class SubmissionPage extends StatefulWidget {
   final bool entryWritten;
   final int mood;
   final String? entry;
@@ -490,6 +496,40 @@ class SubmissionPage extends StatelessWidget {
     this.entry });
 
   @override
+  State<SubmissionPage> createState() => _SubmissionPageState();
+}
+
+class _SubmissionPageState extends State<SubmissionPage> {
+  List<dynamic> userData = [];
+  List<dynamic> plantData = [];
+  List<int> levelDetails = [];
+
+  void getUserData() async{
+    final List<dynamic> userFetch = await getData("/user");
+    final List<dynamic> plantFetch = await getData("/garden/current-details");
+    setState(() {
+    userData = userFetch;
+    plantData = plantFetch;
+    int exp = expGained(
+                    plantData[0]['maturity'],
+                    userData[0]['exp'],
+                    userData[0]['level']);
+    levelDetails = calculateLevel(
+                  exp,
+                  userData[0]['exp'],
+                  userData[0]['level']);
+    plantData[0]['plant_exp'] += exp;
+    plantData[0]['maturity'] = getGrowthStage(plantData[0]['plant_exp']);
+    });
+  }
+
+  @override 
+  void initState() {
+    super.initState();
+    getUserData();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
@@ -497,7 +537,7 @@ class SubmissionPage extends StatelessWidget {
         children: [
           Row(
             children: [
-              Image.asset('assets/emotions/$mood.png'),
+              Image.asset('assets/emotions/${widget.mood}.png'),
               CustomButton(
                 destination: MoodLoggingPage(), //pop this to take it back to the previous state instead of starting a new
                 text: 'edit mood'),
@@ -505,30 +545,52 @@ class SubmissionPage extends StatelessWidget {
           ),
 
           Visibility(
-            visible: entryWritten,
+            visible: widget.entryWritten,
             child: Column(
               children: [
-                Text(entry!),
+                Text(widget.entry!),
                 CustomBackButton(text: 'edit entry'),
               ],
             ),
             ),
             //CustomButton(destination: ViewEntryPage(), text: 'sumbnit!'),
             GestureDetector(
-              onTap: () {
-                Map data =
+              onTap: () { //error handling here pls
+                Map entryData =
                   {
-                  "entry": "$entry",
-                  "entry_date": "${DateFormat('y-MM-d').format(DateTime.now())}",
-                  "entry_time": "${DateFormat('HH:MM').format(DateTime.now())}",
-                  "rating": mood,
+                  "entry": "${widget.entry}",
+                  "entry_date": DateFormat('y-MM-d').format(DateTime.now()),
+                  "entry_time": DateFormat('HH:MM').format(DateTime.now()),
+                  "rating": widget.mood,
                   };
 
-                sendData('/entry', data);
+                Map updateEXP =
+                  {
+                  "user_id": 1,
+                  "plant_id": userData[0]['plant_id'],
+                  "username": userData[0]['username'],
+                  "level": levelDetails[1],
+                  "exp": levelDetails[0]
+                  };
+                
+                Map updatePlant =
+                  {
+                  "garden_slot": 1,
+                  "plant_id": userData[0]['plant_id'],
+                  "name": userData[0]['name'],
+                  "archived": levelDetails[1], //if they've achieved their goal then?
+                  "maturity": plantData[0]['maturity'],
+                  "plant_exp": plantData[0]['plant_exp'],
+                  "last_watered": DateFormat('y-MM-d').format(DateTime.now())
+                  };
+                
+                sendData('/entry', entryData);
+                sendData('/water', updateEXP);
+                sendData('/water/plant', updatePlant);
                 Navigator.of(context).push(
                         MaterialPageRoute(builder: (context) => ViewEntryPage(
-                          mood: '$mood',
-                          entry: entry!,
+                          mood: '${widget.mood}',
+                          entry: widget.entry!,
                           fromSubmission: true,
                         )));
                   },
