@@ -206,6 +206,12 @@ def view_month(start_date: date, session: SessionDep):
                 end_date))
                 ).all()
 
+@app.get("/delete")
+def delete_user(session: SessionDep):
+    with Session(engine) as session:
+        SQLModel.metadata.drop_all(engine)
+        SQLModel.metadata.create_all(engine)
+
 # example data used, default data.
 
 # figure out a way to initialize the app

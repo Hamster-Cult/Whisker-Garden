@@ -65,10 +65,10 @@ class _HomePageState extends State<HomePage> {
   // make the messages more dynamic based on how long your streak has been?
   String message = "Your plant is doing great!";
 
-
   @override
   void initState() {
     super.initState();
+    getData('/setup');
     data = getData('/garden/current-details');
   }
 
@@ -141,6 +141,26 @@ class _HomePageState extends State<HomePage> {
                       }
                       return Text('fetching failed, refresh?');
                       }
+                    ),
+                    GestureDetector(
+                  onTap: () {
+                    getData("/delete");},
+                      child: SizedBox(
+                        width: 200,
+                        height: 80,
+                        child: Stack(
+                          children: [
+                            Image.asset('assets/button_1.png'), // make the image smaller
+                            Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                'resest user',
+                                style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
+                                ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -587,10 +607,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
                 
                 Map updatePlant =
                   {
-                  "garden_slot": 1,
+                  "garden_slot": 2,
                   "plant_id": userData[0]['plant_id'],
                   "name": userData[0]['name'],
-                  "archived": levelDetails[1], //if they've achieved their goal then?
+                  "archived": false, //if they've achieved their goal then?
                   "maturity": plantData[0]['maturity'],
                   "plant_exp": plantData[0]['plant_exp'],
                   "last_watered": DateFormat('y-MM-d').format(DateTime.now())
@@ -1259,14 +1279,60 @@ class _calendarViewState extends State<calendarView> {
   }
 }
 
-class makeUserPage extends StatelessWidget {
+class makeUserPage extends StatefulWidget {
+
+  @override
+  State<makeUserPage> createState() => _makeUserPageState();
+}
+
+class _makeUserPageState extends State<makeUserPage> {
+  final entryController = TextEditingController();
+
+  @override
+  void dispose() {
+    entryController.dispose();
+    super.dispose();
+    getData('/setup'); // need to make this send a post request to set the username
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
-        
+        children: [
+          Row(
+          children: [
+            Text('username:'),
+            TextField(
+              controller: entryController,
+              ),
+            ],
+          ),
+          GestureDetector(
+                  onTap: () { // find out how to change the image shown on tap
+                    Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => HomePage()));
+                      },
+                      child: SizedBox(
+                        width: 200,
+                        height: 80,
+                        child: Stack(
+                          children: [
+                            Image.asset('assets/button_1.png'), // make the image smaller
+                            Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                'begin!',
+                                style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
+                                ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+        ],
       ),
     );
   }
 }
+
