@@ -186,6 +186,26 @@ def get_user_data():
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Error retreiving user data: {e}")
 
+def month_days(month):
+    days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] # no support for leap years lmao
+    return days[int(month)]
+
+@app.get("/calendar/{start_date}")
+def view_month(start_date: date, session: SessionDep):
+    with Session(engine) as session:
+        start_date_str = start_date.strftime("Y-m-d")
+        year = start_date_str[0:5]
+        month = start_date_str[5:7]
+        end_date = start_date_str[0:8] + str(month_days(month))
+        end_date = datetime.strptime(end_date, "Y-m-d").date()
+        return session.exec(
+            select(Entries.entry_date)
+            .where(between(
+                Entries.entry_date,
+                start_date,
+                end_date))
+                ).all()
+
 # example data used, default data.
 
 # figure out a way to initialize the app

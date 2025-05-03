@@ -206,6 +206,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
   void fillEntryPages() async {
     final List<dynamic> data = await getData('/entries/$_currentPage');
+    entries = []; // clears the list for each refresh
 
     for (var item in data) { // each page has a max of 4 entries shown at a time
       setState(() {
@@ -238,13 +239,20 @@ class _CalendarPageState extends State<CalendarPage> {
                   );
                 },
                 child: Container(
-                  margin: EdgeInsets.all(30),
-                  width: 100,
-                  height: 70,
-                  color: Colors.blueGrey,
-                  child: Text(
-                    '<',
-                    style: TextStyle(fontSize: 60)),
+                  margin: EdgeInsets.only(right: 300, left: 30),
+                  width: 80,
+                  height: 50,
+                  decoration: const BoxDecoration(
+                    color: Color.fromARGB(255, 255, 194, 194),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '<',
+                      style: TextStyle(
+                        color: Color.fromARGB(255, 194, 96, 133),
+                        fontSize: 30)),
+                  ),
                   )
                 ),
                 GestureDetector(
@@ -256,13 +264,19 @@ class _CalendarPageState extends State<CalendarPage> {
                   );
                 },
                 child: Container(
-                  margin: EdgeInsets.all(30),
-                  width: 100,
-                  height: 70,
-                  color: Colors.blueGrey,
-                  child: Text(
-                    '>',
-                    style: TextStyle(fontSize: 60)),
+                  width: 80,
+                  height: 50,
+                  decoration: const BoxDecoration(
+                    color: Color.fromARGB(255, 255, 194, 194),
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '>',
+                      style: TextStyle(
+                        color: Color.fromARGB(255, 194, 96, 133),
+                        fontSize: 30)),
+                  ),
                   )
                 ),
             ],
@@ -285,7 +299,7 @@ class StatsPage extends StatelessWidget {
         children: [
           NavigationDashboard(),
           LevelBar(),
-          Text('This is the statistics page'),
+          calendarView(),
         ],
       ),
     );
@@ -510,14 +524,12 @@ class _SubmissionPageState extends State<SubmissionPage> {
     setState(() {
     userData = userFetch;
     plantData = plantFetch;
-    int exp = expGained(
-                    plantData[0]['maturity'],
-                    userData[0]['exp'],
-                    userData[0]['level']);
+    int exp = 5; // always gain 5xp from watering
     levelDetails = calculateLevel(
                   exp,
                   userData[0]['exp'],
                   userData[0]['level']);
+    print("xp: $exp, plantxp: ${plantData[0]['plant_exp'] + exp}");
     plantData[0]['plant_exp'] += exp;
     plantData[0]['maturity'] = getGrowthStage(plantData[0]['plant_exp']);
     });
@@ -714,6 +726,12 @@ class ViewEntryPage extends StatelessWidget {
   required this.mood,
   required this.fromSubmission});
 
+  String convertMood() {
+    List moods = ['estatic', 'good', 'neutral', 'sad', 'gloomy'];
+    String moodText = moods[int.parse(mood)-1];
+    return moodText;
+  }
+
   @override
   Widget build(BuildContext context) {
     final Widget backButton;
@@ -727,13 +745,15 @@ class ViewEntryPage extends StatelessWidget {
         Scaffold(
           body: Column(
             children: [
-              LevelBar(),
-              // add the plant that grew for the entry?
               Container(
-                  margin: const EdgeInsets.only(top: 30, bottom: 30, right: 30, left: 60),
-                  padding: const EdgeInsets.all(20),
+                margin: EdgeInsets.only(top: 20),
+                child: LevelBar()
+              ),
+              // add the plant that grew for the entry?
+              Container( // turn this into a list view for long text
+                  margin: const EdgeInsets.only(top: 30, bottom: 40, right: 20, left: 20),
+                  padding: const EdgeInsets.only(bottom: 25, left:15, right:15, top:15),
                   decoration: const BoxDecoration(
-                    // background styling
                     color: Color.fromARGB(255, 255, 194, 194),
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                   ),
@@ -743,16 +763,25 @@ class ViewEntryPage extends StatelessWidget {
                       children: [
                         Text(
                           date.format(today),
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20,),
+                          style: TextStyle(
+                            color: Color.fromARGB(255, 101, 29, 73),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,),
                           textAlign: TextAlign.left,
                         ),
                         Text(
-                          "${time.format(today)} | Mood: $mood \n",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          "${time.format(today)} | Mood: ${convertMood()} \n",
+                          style: TextStyle(
+                            color: Color.fromARGB(255, 101, 29, 73),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15),
                         ),
                         Text(
                           entry,
-                          style: TextStyle(fontSize: 15, letterSpacing: .6),
+                          style: TextStyle(
+                            color: Color.fromARGB(255, 194, 96, 133),
+                            fontSize: 15,
+                            ),
                           textAlign: TextAlign.left,
                         ),
                       ],
@@ -787,18 +816,36 @@ class MiniEntryView extends StatelessWidget {
 
   MiniEntryView({super.key, required this.entry, required this.mood});
 
+  String trimEntry() {
+    String miniEntry = entry;
+    if (miniEntry.length > 20) {
+      miniEntry = "${miniEntry.substring(0, 20)}...";
+    }
+    return miniEntry;
+  }
+
+  String convertMood() {
+    List moods = ['estatic', 'good', 'neutral', 'sad', 'gloomy'];
+    String moodText = moods[int.parse(mood)-1];
+    return moodText;
+  }
+  
   @override
   Widget build(BuildContext context) {
     return
         GestureDetector(
           onTap: () {
             Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => ViewEntryPage(entry: entry, mood: mood, fromSubmission: false,)));
+                      MaterialPageRoute(builder: (context) => 
+                      ViewEntryPage(entry: entry,
+                      mood: mood,
+                      fromSubmission: false,)
+                      ));
           },
           child: Container(
               margin: const EdgeInsets.only(top: 30, bottom: 30, right: 30, left: 60),
-              padding: const EdgeInsets.all(20),
-              height: 200,
+              padding: const EdgeInsets.all(10),
+              height: 100,
               decoration: const BoxDecoration(
                 color: Color.fromARGB(255, 255, 194, 194),
                 borderRadius: BorderRadius.all(Radius.circular(10)),
@@ -809,20 +856,30 @@ class MiniEntryView extends StatelessWidget {
                       children: [
                         Text(
                         date.format(today),
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20,),
+                        style: TextStyle(
+                          color: Color.fromARGB(255, 101, 29, 73),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,),
                         textAlign: TextAlign.left,
                         ),
                         Text(
-                          "${time.format(today)} | Mood: $mood \n",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          "${time.format(today)} | Mood: ${convertMood()} \n",
+                          style: TextStyle(
+                            color: Color.fromARGB(255, 101, 29, 73),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10),
                         ),
-                        Text(entry),
+                        Text(
+                          trimEntry(),
+                          style: TextStyle(
+                            color: Color.fromARGB(255, 194, 96, 133),
+                            fontSize: 13)),
                        ],
                       ),
                   Align(
                     alignment: Alignment.bottomRight,
                     child: Image.asset( // find out how to make the image larger
-                      'assets/$mood.png',
+                      'assets/emotions/$mood.png',
                       color: const Color.fromRGBO(255, 255, 255, 0.5),
                       colorBlendMode: BlendMode.modulate
                         ),
@@ -903,7 +960,7 @@ class NavigationDashboard extends StatelessWidget {
                       MaterialPageRoute(builder: (context) => CalendarPage()),
                     );
                   },
-                  child: NavigationButton(page: 'calendar')
+                  child: NavigationButton(page: 'entries')
                   ),
                   GestureDetector(
                   onTap: () {
@@ -1111,3 +1168,105 @@ class TaskBox extends StatelessWidget {
   }
 }
 */
+
+class calendarView extends StatefulWidget {
+  calendarView ({super.key});
+
+  @override
+  State<calendarView> createState() => _calendarViewState();
+}
+
+  Color filledColor = Color.fromARGB(255, 188, 161, 193);
+
+class _calendarViewState extends State<calendarView> {
+  Widget dayFilled = Container(
+      margin: EdgeInsets.only(right: 30, top: 5, bottom: 5),
+      height: 30,
+      width: 30,
+      decoration: BoxDecoration(
+        color:  filledColor,
+        borderRadius: BorderRadius.all(Radius.circular(3)),
+      ),
+    );
+
+  List<Widget> calendarRows = [];
+
+  String today = DateFormat('dd MMMM yyy').format(DateTime.now());
+
+  void fillCalendar() async {
+    String _year = today.substring(6);
+    String _month = today.substring(3, 6);
+
+    calendarRows = []; // clears the list for each refresh
+    calendarRows.add(
+      Align(
+        alignment: Alignment.topLeft,
+        child: Text(
+            "$_month, $_year",
+            style: TextStyle(
+              color: Color.fromARGB(255, 101, 29, 73),
+              fontWeight: FontWeight.bold,
+              fontSize: 15,),
+          ),
+      ),
+    );
+    String todayURL = DateFormat('y-MM-d').format(DateTime.now()).substring(0, 7);
+    //final List<dynamic> data = await getData('/calendar/$todayURL-1'); // doesn't work rn
+
+    for (var i = 0; i < 4; i++) {
+        List<Widget> tempRow = [];
+        for (var i = 0; i < 8; i++) {
+          /*
+          for (var item in data) {
+            filledColor = Color.fromARGB(255, 166, 133, 217);
+            setState(() {tempRow.add(dayFilled);});
+          }*/
+          setState(() {tempRow.add(dayFilled);});
+          // needs to correspond with day,,,
+        }
+        calendarRows.add(
+          Row(children: tempRow)
+        );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fillCalendar();
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          margin: EdgeInsets.all(10),
+          padding: EdgeInsets.only(left: 15, top: 10, bottom: 10),
+          height: 210,
+          width: 500,
+          decoration: BoxDecoration(
+            color: Color.fromARGB(255, 255, 194, 194),
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
+          child: Column(
+            children: calendarRows
+          ),
+        ),
+        //Image.asset('may.png'), adding graph stats here
+      ],
+    );
+  }
+}
+
+class makeUserPage extends StatelessWidget {
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        
+      ),
+    );
+  }
+}
