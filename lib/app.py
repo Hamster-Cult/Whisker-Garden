@@ -47,14 +47,13 @@ app.add_middleware(
     allow_headers=["*"], # Allows all headers
 )
 
-# setup database with inserts
 # if any of the functions fail, an exception is raised
-@app.get("/setup")
-def on_startup():
+@app.get("/setup/{username}") 
+def on_startup(username: str):
     create_db_and_tables()
     create_plants()
     create_garden()
-    create_user()
+    create_user(username)
     create_goals()
 
 @app.get("/user/plant")
@@ -207,16 +206,22 @@ def view_month(start_date: date, session: SessionDep):
                 end_date))
                 ).all()
 
+@app.get("/delete")
+def delete_user(session: SessionDep):
+    with Session(engine) as session:
+        SQLModel.metadata.drop_all(engine)
+        SQLModel.metadata.create_all(engine)
+
 # example data used, default data.
 
 # figure out a way to initialize the app
 # let the user write their username?
 # allow the user to pick from 3 different starting plants
-def create_user():
+def create_user(name: str):
     try:
         with Session(engine) as session:
             user = AppUser(
-                username='test user',
+                username=name,
                 garden_slot=2,# make sure it's linked properly
                 level=1,
                 exp=0)

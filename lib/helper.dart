@@ -10,5 +10,11 @@ List<int> calculateLevel(int expGained, int currentExp, int currentLevel) {
 }
 
 int getGrowthStage(int plantExp) {
-  return (plantExp / 10).round(); // fix the math
+  if (plantExp % 10 == 0) {
+    return (plantExp / 10).toInt();
+  } else if (plantExp - 5 == 0) {
+    return 1;
+  }
+  plantExp -= 5;
+  return (plantExp / 10).toInt();
 }

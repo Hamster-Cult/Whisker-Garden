@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:http/http.dart';
+
 import './helper.dart';
 
 import 'package:flutter/material.dart';
@@ -30,23 +32,48 @@ class MainApp extends StatelessWidget {
 
 // loading page
 // this is the first page the user sees when they open the app
-class TitlePage extends StatelessWidget {
+class TitlePage extends StatefulWidget {
   const TitlePage({super.key});
 
   @override
+  State<TitlePage> createState() => _TitlePageState();
+}
+
+class _TitlePageState extends State<TitlePage> {
+  // List<dynamic> _loggedIn = [];
+  Widget nextPage = HomePage();
+
+  void checkUser() async {
+    Response response = await getData2("/user");
+    setState(() {
+      if (response.statusCode == 404) {
+      nextPage = makeUserPage();
+    }
+    });
+  }
+  
+  @override
+  void initState() {
+    super.initState();
+    checkUser();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-        onTap: () {
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) => HomePage()));
-        },
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                    Expanded(child: Image.asset('assets/logo.png')),
-                    Text('tap to start'),
-                  ] ,
-                ),
-      );
+    return Scaffold(
+      body: GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(builder: (context) => nextPage));
+          },
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                      Expanded(child: Image.asset('assets/logo.png')),
+                      Text('tap to start'),
+                    ] ,
+                  ),
+        ),
+    );
   }
 }
 
@@ -62,13 +89,21 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final today = DateTime.now();
   late Future<List<dynamic>> data;
+  String username = "";
+
+  void getUsername() async {
+    List<dynamic> userDetails = await getData("/user");
+    setState(() {
+      username = userDetails[0]['username'];
+    });
+  }
   // make the messages more dynamic based on how long your streak has been?
   String message = "Your plant is doing great!";
-
 
   @override
   void initState() {
     super.initState();
+    getUsername();
     data = getData('/garden/current-details');
   }
 
@@ -80,6 +115,7 @@ class _HomePageState extends State<HomePage> {
                 NavigationDashboard(),
                 Stack(
                   children: [
+                    Text("Welcome $username!"),
                     FutureBuilder<List<dynamic>>(
                       future: getData('/garden/current-details'),
                       builder: (context, snapshot) {
@@ -141,6 +177,28 @@ class _HomePageState extends State<HomePage> {
                       }
                       return Text('fetching failed, refresh?');
                       }
+                    ),
+                    GestureDetector(
+                  onTap: () {
+                    getData("/delete");
+                    Navigator.of(context).push(MaterialPageRoute(builder: (context) => TitlePage()));
+                    },
+                      child: SizedBox(
+                        width: 200,
+                        height: 80,
+                        child: Stack(
+                          children: [
+                            Image.asset('assets/button_1.png'), // make the image smaller
+                            Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                'delete user',
+                                style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
+                                ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -412,7 +470,7 @@ class MoodLoggingPage extends StatelessWidget {
                         MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 2,)),
                   );},
                     child: Container(
-                      margin: EdgeInsets.only(top: 20, bottom: 20, right: 320, left: 60),
+                      margin: EdgeInsets.only(top: 20, bottom: 20, right: 230, left: 60),
                       child: Image.asset('assets/emotions/2.png')
                     ),
                   ),
@@ -437,7 +495,7 @@ class MoodLoggingPage extends StatelessWidget {
                         MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 1,)),
                   );},
                     child: Container(
-                      margin: EdgeInsets.only(top: 100, bottom: 20, right: 300, left: 80),
+                      margin: EdgeInsets.only(top: 100, bottom: 20, right: 200, left: 80),
                       child: Image.asset('assets/emotions/1.png'),
                     ),
                   ),
@@ -484,7 +542,7 @@ class WriteEntryPromptPage extends StatelessWidget {
           Row(
             children: [
             CustomButton(destination: EntryWritingPage(mood: mood), text: 'yes'),
-            CustomButton(destination: SubmissionPage(mood: mood, entryWritten: false,), text: 'no')
+            CustomButton(destination: SubmissionPage(mood: mood, entryWritten: false, entry: ''), text: 'no')
             ],
           ),
 
@@ -495,10 +553,6 @@ class WriteEntryPromptPage extends StatelessWidget {
 }
 
 
-// (if this has a submission button then keep it seperate if not just use viewentrypage)
-// okay I'm barely functional rn I have no idea what I'm writing so the code is probably trash but uhm
-// change the destination page if you don't write an entry and just log your mood
-// this probably has implications for the db but I can't think aaaaa
 class SubmissionPage extends StatefulWidget {
   final bool entryWritten;
   final int mood;
@@ -529,10 +583,21 @@ class _SubmissionPageState extends State<SubmissionPage> {
                   exp,
                   userData[0]['exp'],
                   userData[0]['level']);
-    print("xp: $exp, plantxp: ${plantData[0]['plant_exp'] + exp}");
     plantData[0]['plant_exp'] += exp;
     plantData[0]['maturity'] = getGrowthStage(plantData[0]['plant_exp']);
     });
+  }
+
+  List<Widget> submissionCheck = [];
+  void showEditEntry() {
+    if (widget.entryWritten) {
+      submissionCheck.add(
+        Column(children: [
+          Text(widget.entry!),
+          CustomBackButton(text: 'edit entry'),
+        ],)
+      );
+    }
   }
 
   @override 
@@ -553,20 +618,13 @@ class _SubmissionPageState extends State<SubmissionPage> {
               CustomButton(
                 destination: MoodLoggingPage(), //pop this to take it back to the previous state instead of starting a new
                 text: 'edit mood'),
-            ],
-          ),
+                ],
+              ),
+            Column(
+              children: submissionCheck,
+            ),
 
-          Visibility(
-            visible: widget.entryWritten,
-            child: Column(
-              children: [
-                Text(widget.entry!),
-                CustomBackButton(text: 'edit entry'),
-              ],
-            ),
-            ),
-            //CustomButton(destination: ViewEntryPage(), text: 'sumbnit!'),
-            GestureDetector(
+            GestureDetector( //submit bttn
               onTap: () { //error handling here pls
                 Map entryData =
                   {
@@ -587,10 +645,10 @@ class _SubmissionPageState extends State<SubmissionPage> {
                 
                 Map updatePlant =
                   {
-                  "garden_slot": 1,
+                  "garden_slot": 2,
                   "plant_id": userData[0]['plant_id'],
                   "name": userData[0]['name'],
-                  "archived": levelDetails[1], //if they've achieved their goal then?
+                  "archived": false, //if they've achieved their goal then?
                   "maturity": plantData[0]['maturity'],
                   "plant_exp": plantData[0]['plant_exp'],
                   "last_watered": DateFormat('y-MM-d').format(DateTime.now())
@@ -599,6 +657,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
                 sendData('/entry', entryData);
                 sendData('/water', updateEXP);
                 sendData('/water/plant', updatePlant);
+
                 Navigator.of(context).push(
                         MaterialPageRoute(builder: (context) => ViewEntryPage(
                           mood: '${widget.mood}',
@@ -1002,7 +1061,7 @@ class _LevelBarState extends State<LevelBar> {
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               return Text(
-              "LV ${snapshot.data![0]['level']}:",
+              "LV ${snapshot.data![0]['level']}: exp: ${snapshot.data![0]['exp']}",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15));
               }
             else if (snapshot.hasError) {
@@ -1259,14 +1318,69 @@ class _calendarViewState extends State<calendarView> {
   }
 }
 
-class makeUserPage extends StatelessWidget {
+class makeUserPage extends StatefulWidget {
+
+  @override
+  State<makeUserPage> createState() => _makeUserPageState();
+}
+
+class _makeUserPageState extends State<makeUserPage> {
+  final usernameController = TextEditingController();
+
+  @override
+  void dispose() {
+    usernameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
-        
+        children: [
+          Row(
+          children: [
+            Text('username:'),
+            Expanded(
+              child: Container(
+                margin: EdgeInsets.all(10),
+                color: const Color.fromARGB(255, 240, 175, 177),
+                child: TextField(
+                  controller: usernameController,
+                  decoration: InputDecoration(
+                    labelText: 'name',
+                  ),
+                ),
+              ),
+            ),
+            ],
+          ),
+          GestureDetector(
+                  onTap: () {
+                    getData('/setup/${usernameController.text}');
+                    Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => HomePage()));
+                      },
+                      child: SizedBox(
+                        width: 200,
+                        height: 80,
+                        child: Stack(
+                          children: [
+                            Image.asset('assets/button_1.png'), // make the image smaller
+                            Align(
+                              alignment: Alignment.center,
+                              child: Text(
+                                'begin!',
+                                style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
+                                ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+        ],
       ),
     );
   }
 }
+
