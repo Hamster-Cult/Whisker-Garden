@@ -22,7 +22,7 @@ def create_db_and_tables(engine):
         raise HTTPException(status_code=500, detail=f"Error creating tables: {e}")
 
 # makes an instance of the database and makes sure it's fastapi
-def get_session():
+def get_session(engine):
     try:
         with Session(engine) as session:
             yield session
