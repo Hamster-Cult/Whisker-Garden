@@ -3,8 +3,9 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi.middleware.cors import CORSMiddleware
-from database import *
+from lib.database import *
 from json import *
+
 
 # url for the database
 postgresql_url = "postgresql://:@localhost/whisker"
@@ -14,7 +15,7 @@ engine = create_engine(postgresql_url)
 
 # create the database tables
 # takes from database.py
-def create_db_and_tables():
+def create_db_and_tables(engine):
     try:
         SQLModel.metadata.create_all(engine)
     except SQLAlchemyError as e:
@@ -48,7 +49,7 @@ app.add_middleware(
 
 # setup database with inserts
 # if any of the functions fail, an exception is raised
-@app.get("/setup") 
+@app.get("/setup")
 def on_startup():
     create_db_and_tables()
     create_plants()
@@ -78,7 +79,7 @@ def get_exp():
         with Session(engine) as session:
             results = session.exec(
                 select(
-                    AppUser.level, 
+                    AppUser.level,
                     AppUser.exp)
                 .limit(1)
                 ).all()
@@ -90,15 +91,15 @@ def get_exp():
             return results_json
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving User EXP: {e}")
-    
+
 @app.get("/garden/current-details")
 def get_exp():
     try:
         with Session(engine) as session:
             results = session.exec(
                 select(
-                    Garden.plant_id, 
-                    Garden.last_watered, 
+                    Garden.plant_id,
+                    Garden.last_watered,
                     Garden.maturity,
                     Garden.plant_exp,
                     Garden.garden_slot,
@@ -262,14 +263,14 @@ def create_garden():
     try:
         with Session(engine) as session:
             default_plant = Garden(
-                plant_id=8, 
-                name='ponyo', 
-                archived=False, 
+                plant_id=8,
+                name='ponyo',
+                archived=False,
                 maturity=1)
             pre_built_plant = Garden(
-                plant_id=8, 
-                name='sunny', 
-                archived=True, 
+                plant_id=8,
+                name='sunny',
+                archived=True,
                 maturity=5,
                 plant_exp=150,
                 last_watered='2025-04-03')
