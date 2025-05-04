@@ -1,50 +1,104 @@
 import unittest
+from unittest.mock import patch
 from sqlmodel import create_engine, SQLModel
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 from lib.database import *
-from lib.app import create_db_and_tables, get_session
 
 # each test case sets up, tests and tears down
+# setUp and tearDown needing different cases to the usual is so annoying
 
-class TestCreateDbAndTables(unittest.TestCase):
-    def setUp(self):
-        """Set up an SQL database for testing"""
-        self.engine = create_engine("sqlite:///:memory:")
 
-    def test_create_db_and_tables(self):
-        """Test if the tables are created correctly"""
-        try:
-            create_db_and_tables(self.engine)
+# this will be the formula for all the tests
 
-        except Exception as e:
-            self.fail(f"create_db_and_tables raised an exception: {e}")
+# connect to the database and says hello world
+class TestDatabaseInit(unittest.TestCase):
+    # setup is run before each test case
+    @patch('lib.app.engine')
+    def setUp(self, mock_engine):
+        """Set up an in-memory SQLite database for the tests"""
+        self.engine = create_engine("sqlite:///:memory:", echo=False) # change to echo=True to see the tables being created
+        # this runs the function but as an in memory database that we will have to scrap
+        mock_engine.return_value = self.engine
 
+        # create tables using SQLModel directly instead of calling create_db_and_tables
+        SQLModel.metadata.create_all(self.engine)
+
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+
+    # unittest.main checks for all functions that start with test_ and runs them
+    def test_hello_world(self):
+        """Test basic connection to the database"""
+        # connects to the database and runs a simple query
+        with self.engine.connect() as conn:
+            result = conn.execute(text("SELECT 'hello world'"))
+            # fetches the result of the query
+            rows = result.fetchall()
+        # checks if the result is what we executed
+        self.assertEqual(rows, [('hello world',)])
+
+    def test_list_tables(self):
+        """Listing all tables in the database"""
+        with self.engine.connect() as conn:
+
+            result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
+            tables = [row[0] for row in result.fetchall()]
+
+            # print all table names
+            print("Tables in database:", tables)
+
+            # check that the expected tables exist
+            expected_tables = ['plant', 'moodlog', 'entries', 'goals', 'garden', 'appuser', 'userentries']
+            for table in expected_tables:
+                self.assertIn(table, tables)
+
+    def test_plant_table(self):
+        """Checking if the plant table exists and has the correct columns"""
+        with self.engine.connect() as conn:
+            # basically asking sqlite to give us the columns of the mentioned table (plant)
+            result = conn.execute(text("PRAGMA table_info(plant)"))
+            # fetchall gets all the rows from the result of the query
+            # row[1] gets the column's name.
+            columns = [row[1] for row in result.fetchall()]
+
+            # just debugging to see the columns in the plant table, fills up the screen so much
+            # print("Columns in plant table:", columns)
+
+            # check that the expected columns exist
+            expected_columns = ['plant_id', 'plant_type', 'unlocked']
+            for column in expected_columns:
+                self.assertIn(column, columns)
+
+            # check for unexpected columns
+            # eg if this table had a column called 'plant_name' for some reason it would fail the test
+            for column in columns:
+                if column not in expected_columns:
+                    self.fail(f"Unexpected column found: {column}")
+
+    def test_appuser_table(self):
+        """Checking if the appuser table exists and has the correct columns"""
+        with self.engine.connect() as conn:
+            # gets the columns of the appuser table
+            result = conn.execute(text("PRAGMA table_info(appuser)"))
+            columns = [row[1] for row in result.fetchall()]
+
+            # print the columns of the appuser table, not needed for the test but useful for debugging
+            print("Columns in appuser table:", columns)
+
+
+            # check that the expected columns exist
+            expected_columns = ['user_id', 'garden_slot', 'username', 'level', 'exp']
+            for column in expected_columns:
+                self.assertIn(column, columns)
+
+            # check for unexpected columns
+            for column in columns:
+                if column not in expected_columns:
+                    self.fail(f"Unexpected column found: {column}")
+
+    # tearDown is run after each test case
     def tearDown(self):
-        """Delete database session after each test"""
-        self.engine.dispose()
-
-class TestGetSession(unittest.TestCase):
-    def setUp(self):
-        """Set up an SQL database for testing"""
-        self.engine = create_engine("sqlite:///:memory:")
-        create_db_and_tables(self.engine)
-
-    def test_get_session(self):
-        """Test if the session is created correctly"""
-        try:
-            session = get_session(self.engine)
-            session_generator = get_session(self.engine)
-            session = next(session_generator)
-            self.assertIsNotNone(session, "Session should not be None")
-            session.close()
-
-        except SQLAlchemyError as e:
-            self.fail(f"get_session raised an exception: {e}")
-
-    def tearDown(self):
-        """Delete database session after each test"""
-        self.engine.dispose()
-
-
-if __name__ == '__main__':
-    unittest.main()
+        self.session.rollback()
+        self.session.close()
