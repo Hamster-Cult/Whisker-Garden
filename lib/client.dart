@@ -12,7 +12,20 @@ Future<List<dynamic>> getData(String path) async {
   if (response.statusCode == 200) {
     return jsonDecode(response.body);
   } else {
-      throw Exception('error'); // Make this a better error lmao
+      throw Exception(response.statusCode); // Make this a better error lmao
+    }
+}
+
+// to handle erros :[
+Future<http.Response> getData2(String path) async {
+  var url = Uri.parse('http://127.0.0.1:8000$path');
+  final response = await http.get(url);
+  return response;
+
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  } else {
+      throw Exception(response.statusCode); // Make this a better error lmao
     }
 }
 
