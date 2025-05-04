@@ -54,6 +54,14 @@ class TestDatabaseInit(unittest.TestCase):
             for table in expected_tables:
                 self.assertIn(table, tables)
 
+    # tearDown is run after each test case
+    def tearDown(self):
+        self.session.rollback()
+        self.session.close()
+
+
+class TestPlantTable(unittest.TestCase):
+    
     def test_plant_table(self):
         """Checking if the plant table exists and has the correct columns"""
         with self.engine.connect() as conn:
@@ -98,7 +106,20 @@ class TestDatabaseInit(unittest.TestCase):
                 if column not in expected_columns:
                     self.fail(f"Unexpected column found: {column}")
 
-    # tearDown is run after each test case
-    def tearDown(self):
-        self.session.rollback()
-        self.session.close()
+
+# this is how you ditctate the order of the tests cause they run alphabetical by default for some reason
+def suite():
+    """Define the order of test execution"""
+    suite = unittest.TestSuite()
+    suite.addTest(TestDatabaseInit('test_hello_world'))
+    suite.addTest(TestDatabaseInit('test_list_tables'))
+    suite.addTest(TestDatabaseInit('test_appuser_table'))
+
+    # add more below
+
+    return suite
+
+if __name__ == '__main__':
+    # Use the suite to run tests instead of unittest.main()
+    runner = unittest.TextTestRunner()
+    runner.run(suite())
