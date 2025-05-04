@@ -52,7 +52,7 @@ def on_startup(username: str):
     create_db_and_tables()
     create_plants()
     create_garden()
-    create_user_2(username)
+    create_user(username)
     create_goals()
 
 @app.get("/user/plant")

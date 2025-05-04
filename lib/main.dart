@@ -1061,7 +1061,7 @@ class _LevelBarState extends State<LevelBar> {
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               return Text(
-              "LV ${snapshot.data![0]['level']}:",
+              "LV ${snapshot.data![0]['level']}: exp: ${snapshot.data![0]['exp']}",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15));
               }
             else if (snapshot.hasError) {
