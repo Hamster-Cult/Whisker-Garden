@@ -7,10 +7,20 @@ from sqlalchemy.orm import sessionmaker
 from lib.database import *
 from lib.app import on_startup, create_plants
 
+# this is all for logging so i dont comment print statements
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)  # Default to INFO level
+handler = logging.StreamHandler()
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+
 # each test case sets up, tests and tears down
+
 # setUp and tearDown needing different cases to the usual is so annoying
-
-
 # this will be the formula for all the tests
 
 # connect to the database and says hello world
@@ -48,7 +58,7 @@ class TestDatabaseInit(unittest.TestCase):
             tables = [row[0] for row in result.fetchall()]
 
             # print all table names
-            print("Tables in database:", tables)
+            logger.debug("Tables in database:", tables)
 
             # check that the expected tables exist
             expected_tables = ['plant', 'moodlog', 'entries', 'goals', 'garden', 'appuser', 'userentries']
@@ -85,7 +95,7 @@ class TestPlantTable(unittest.TestCase):
             columns = [row[1] for row in result.fetchall()]
 
             # just debugging to see the columns in the plant table, fills up the screen so much
-            print("Columns in plant table:", columns)
+            logger.debug(f"Columns in plant table: {columns}")
 
             # check that the expected columns exist
             expected_columns = ['plant_id', 'plant_type', 'unlocked']
@@ -108,13 +118,13 @@ class TestPlantTable(unittest.TestCase):
             rows = result.fetchall()
 
         # just debugging to see the columns in the plant table, fills up the screen so much
-        if print
-        print("Rows in plant table:", rows)
+        logger.debug(f"Rows in plant table: {rows}")
 
         # check that the expected data exists
         plant_types = [row[1] for row in rows]  # Extract plant types
 
         # Check for specific plant types that should be created
+        expected_plants = ['tulips', 'hibiscus', 'hydrengea' ,'wisteria' ,'cherry blossom' ,'rose', 'bluebell', 'lily of the valley', 'spider lily', 'aster']
         for plant in expected_plants:
                 self.assertIn(plant, plant_types)
 
@@ -143,6 +153,18 @@ def suite():
     return suite
 
 if __name__ == '__main__':
+    import sys
+
+    # check for --debug flag
+    if '--debug' in sys.argv:
+        logger.setLevel(logging.DEBUG)
+        # Remove the flag so unittest doesn't try to interpret it
+        sys.argv.remove('--debug')
+
     # Use the suite to run tests instead of unittest.main()
     runner = unittest.TextTestRunner()
     runner.run(suite())
+
+# to run this go to the root folder (Whisker-Garden)
+# python -m lib.apptest
+# python -m lib.apptest --debug
