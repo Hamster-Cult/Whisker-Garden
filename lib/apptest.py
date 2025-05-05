@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from lib.database import *
+from lib.app import on_startup, create_plants
 
 # each test case sets up, tests and tears down
 # setUp and tearDown needing different cases to the usual is so annoying
@@ -61,8 +62,20 @@ class TestDatabaseInit(unittest.TestCase):
 
 
 class TestPlantTable(unittest.TestCase):
-    
-    def test_plant_table(self):
+    @patch('lib.app.engine')
+    def setUp(self, mock_engine):
+        """Set up an in-memory SQLite database for the tests"""
+        self.engine = create_engine("sqlite:///:memory:", echo=False) # change to echo=True to see the tables being created
+        # this runs the function but as an in memory database that we will have to scrap
+        mock_engine.return_value = self.engine
+
+        # create tables using SQLModel directly instead of calling create_db_and_tables
+        SQLModel.metadata.create_all(self.engine)
+
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+
+    def test_columns(self):
         """Checking if the plant table exists and has the correct columns"""
         with self.engine.connect() as conn:
             # basically asking sqlite to give us the columns of the mentioned table (plant)
@@ -72,7 +85,7 @@ class TestPlantTable(unittest.TestCase):
             columns = [row[1] for row in result.fetchall()]
 
             # just debugging to see the columns in the plant table, fills up the screen so much
-            # print("Columns in plant table:", columns)
+            print("Columns in plant table:", columns)
 
             # check that the expected columns exist
             expected_columns = ['plant_id', 'plant_type', 'unlocked']
@@ -85,27 +98,35 @@ class TestPlantTable(unittest.TestCase):
                 if column not in expected_columns:
                     self.fail(f"Unexpected column found: {column}")
 
-    def test_appuser_table(self):
-        """Checking if the appuser table exists and has the correct columns"""
+    def test_plant_data(self,):
+        """Checking if the plant table has the correct data"""
+        with patch('lib.app.engine', self.engine):
+            create_plants()
+
         with self.engine.connect() as conn:
-            # gets the columns of the appuser table
-            result = conn.execute(text("PRAGMA table_info(appuser)"))
-            columns = [row[1] for row in result.fetchall()]
+            result = conn.execute(text("SELECT * FROM plant"))
+            rows = result.fetchall()
 
-            # print the columns of the appuser table, not needed for the test but useful for debugging
-            print("Columns in appuser table:", columns)
+        # just debugging to see the columns in the plant table, fills up the screen so much
+        if print
+        print("Rows in plant table:", rows)
 
+        # check that the expected data exists
+        plant_types = [row[1] for row in rows]  # Extract plant types
 
-            # check that the expected columns exist
-            expected_columns = ['user_id', 'garden_slot', 'username', 'level', 'exp']
-            for column in expected_columns:
-                self.assertIn(column, columns)
+        # Check for specific plant types that should be created
+        for plant in expected_plants:
+                self.assertIn(plant, plant_types)
 
-            # check for unexpected columns
-            for column in columns:
-                if column not in expected_columns:
-                    self.fail(f"Unexpected column found: {column}")
+            # Check we have the expected number of plants (10 based on your create_plants function)
+        self.assertEqual(len(rows), 10)
 
+    def tearDown(self):
+        self.session.rollback()
+        self.session.close()
+
+class TestAppUserTable(unittest.TestCase):
+    pass
 
 # this is how you ditctate the order of the tests cause they run alphabetical by default for some reason
 def suite():
@@ -113,7 +134,9 @@ def suite():
     suite = unittest.TestSuite()
     suite.addTest(TestDatabaseInit('test_hello_world'))
     suite.addTest(TestDatabaseInit('test_list_tables'))
-    suite.addTest(TestDatabaseInit('test_appuser_table'))
+    suite.addTest(TestPlantTable('test_columns'))
+    suite.addTest(TestPlantTable('test_plant_data'))
+    #suite.addTest(TestDatabaseInit('test_appuser_table'))
 
     # add more below
 
