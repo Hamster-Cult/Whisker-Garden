@@ -115,7 +115,12 @@ class _HomePageState extends State<HomePage> {
                 NavigationDashboard(),
                 Stack(
                   children: [
-                    Text("Welcome $username!"),
+                    Container(
+                      margin: EdgeInsets.all(10),
+                      child: Text(
+                        "Welcome $username!",
+                        style: TextStyle(color: pinkText, fontSize: 20))
+                    ),
                     FutureBuilder<List<dynamic>>(
                       future: getData('/garden/current-details'),
                       builder: (context, snapshot) {
@@ -183,22 +188,22 @@ class _HomePageState extends State<HomePage> {
                     getData("/delete");
                     Navigator.of(context).push(MaterialPageRoute(builder: (context) => TitlePage()));
                     },
-                      child: SizedBox(
-                        width: 200,
-                        height: 80,
-                        child: Stack(
-                          children: [
-                            Image.asset('assets/button_1.png'), // make the image smaller
-                            Align(
-                              alignment: Alignment.center,
-                              child: Text(
-                                'delete user',
-                                style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
-                                ),
-                            ),
-                          ],
+                      child: Container(
+                    margin: EdgeInsets.all(10),
+                    width: 250,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: pinkBg,
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                              'delete user',
+                              style: TextStyle(color: pinkText, fontSize: 20),
+                              ),
+                    ),
                         ),
-                      ),
                     ),
                   ],
                 ),
@@ -248,16 +253,15 @@ class TaskCreationPage extends StatelessWidget {
   }
 }
 
-// working on this it doesn't work rn
-// this is the calendar page where the user can see their entries
-class CalendarPage extends StatefulWidget {
-  const CalendarPage({super.key});
+// view all entries
+class EntryViewPage extends StatefulWidget {
+  const EntryViewPage({super.key});
 
   @override
-  State<CalendarPage> createState() => _CalendarPageState();
+  State<EntryViewPage> createState() => _EntryViewPageState();
 }
 
-class _CalendarPageState extends State<CalendarPage> {
+class _EntryViewPageState extends State<EntryViewPage> {
   List<Widget> entries = [];
   int _currentPage = 1;
   //make a page that prompts the user to make an entry if there are none
@@ -435,7 +439,6 @@ class _GardenShelfPageState extends State<GardenShelfPage> {
 // functional and transitional pages
 
 // mood logging page
-// this is the page where the user can log their mood
 class MoodLoggingPage extends StatelessWidget {
   const MoodLoggingPage({super.key});
 
@@ -531,15 +534,21 @@ class WriteEntryPromptPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
+          Row( 
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset('assets/emotions/$mood.png'),
               CustomBackButton(text: 'edit mood'),
             ],
           ),
-          Text("Would you like to add an entry?"),
+          Text(
+            "Would you like to add an entry?",
+            textAlign: TextAlign.justify,
+            style: TextStyle(color: pinkText, fontWeight: FontWeight.bold, fontSize: 15)),
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
             CustomButton(destination: EntryWritingPage(mood: mood), text: 'yes'),
             CustomButton(destination: SubmissionPage(mood: mood, entryWritten: false, entry: ''), text: 'no')
@@ -613,6 +622,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset('assets/emotions/${widget.mood}.png'),
               CustomButton(
@@ -657,31 +667,13 @@ class _SubmissionPageState extends State<SubmissionPage> {
                 sendData('/entry', entryData);
                 sendData('/water', updateEXP);
                 sendData('/water/plant', updatePlant);
-
-                Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => ViewEntryPage(
+                  }, 
+                  child: CustomButton(destination: ViewEntryPage(
                           mood: '${widget.mood}',
                           entry: widget.entry!,
                           fromSubmission: true,
-                        )));
-                  },
-                  child: SizedBox(
-                    width: 200,
-                    height: 80,
-                    child: Stack(
-                      children: [
-                        Image.asset('assets/button_1.png'), // make the image smaller
-                        Align(
-                          alignment: Alignment.center,
-                          child: Text(
-                            'submit',
-                            style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
-                            ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
+                        ), text: 'submit')
+                ),
         ],
       ),
     );
@@ -728,36 +720,14 @@ class _EntryWritingPageState extends State<EntryWritingPage> {
                 ),
             ),
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 CustomBackButton(text: "cancel"),
-                GestureDetector(
-                  onTap: () { // find out how to change the image shown on tap
-                    Navigator.of(context).push(
-                            MaterialPageRoute(builder: (context) => SubmissionPage(
+                CustomButton(destination: SubmissionPage(
                               mood: widget.mood,
                               entryWritten: true,
                               entry: entryController.text
-                              )
-                            )
-                          );
-                      },
-                      child: SizedBox(
-                        width: 200,
-                        height: 80,
-                        child: Stack(
-                          children: [
-                            Image.asset('assets/button_1.png'), // make the image smaller
-                            Align(
-                              alignment: Alignment.center,
-                              child: Text(
-                                'finish',
-                                style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
-                                ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
+                              ), text: 'finish'),
               ],
             ),
           ],
@@ -1016,7 +986,7 @@ class NavigationDashboard extends StatelessWidget {
                   GestureDetector(
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => CalendarPage()),
+                      MaterialPageRoute(builder: (context) => EntryViewPage()),
                     );
                   },
                   child: NavigationButton(page: 'entries')
@@ -1112,6 +1082,8 @@ class _LevelBarState extends State<LevelBar> {
   }
 }
 
+Color pinkText = Color.fromARGB(255, 105, 46, 91);
+Color pinkBg = Color.fromARGB(255, 243, 172, 172);
 
 class CustomButton extends StatelessWidget {
   final Widget destination;
@@ -1126,22 +1098,22 @@ class CustomButton extends StatelessWidget {
                 Navigator.of(context).push(
                         MaterialPageRoute(builder: (context) => destination));
                   },
-                  child: SizedBox(
+                  child: Container(
+                    margin: EdgeInsets.all(10),
                     width: 200,
-                    height: 80,
-                    child: Stack(
-                      children: [
-                        Image.asset('assets/button_1.png'), // make the image smaller
-                        Align(
-                          alignment: Alignment.center,
-                          child: Text(
-                            text,
-                            style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
-                            ),
-                        ),
-                      ],
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: pinkBg,
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
-                  ),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                              text,
+                              style: TextStyle(color: pinkText, fontSize: 20),
+                              ),
+                    ),
+                        ),
                 );
   }
 }
@@ -1156,22 +1128,22 @@ class CustomBackButton extends StatelessWidget {
     return GestureDetector(
       // find out how to change the image shown on tap
               onTap: () {Navigator.of(context).pop();},
-                  child: SizedBox(
+                  child: Container(
+                    margin: EdgeInsets.all(10),
                     width: 200,
-                    height: 80,
-                    child: Stack(
-                      children: [
-                        Image.asset('assets/button_1.png'), // make the image smaller
-                        Align(
-                          alignment: Alignment.center,
-                          child: Text(
-                            text,
-                            style: TextStyle(color: const Color.fromARGB(255, 197, 197, 197), fontSize: 20),
-                            ),
-                        ),
-                      ],
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: pinkBg,
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
                     ),
-                  ),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                              text,
+                              style: TextStyle(color: pinkText, fontSize: 20),
+                              ),
+                    ),
+                        ),
                 );
   }
 }
