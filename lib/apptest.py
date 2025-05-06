@@ -75,15 +75,20 @@ class TestPlantTable(unittest.TestCase):
     @patch('lib.app.engine')
     def setUp(self, mock_engine):
         """Set up an in-memory SQLite database for the tests"""
+        # this runs the function but as an in-memory database that we will have to scrap
+        # in-memory so we dont risk damage to the actual database
         self.engine = create_engine("sqlite:///:memory:", echo=False) # change to echo=True to see the tables being created
-        # this runs the function but as an in memory database that we will have to scrap
         mock_engine.return_value = self.engine
 
-        # create tables using SQLModel directly instead of calling create_db_and_tables
+        # no idea what this is doing but it works so im not touching it
         SQLModel.metadata.create_all(self.engine)
-
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
+
+        # i cant remember why i needed the patch but it's needed
+        # just runs the function that creates the plants in the database for the rest of this class to use
+        with patch('lib.app.engine', self.engine):
+            create_plants()
 
     def test_columns(self):
         """Checking if the plant table exists and has the correct columns"""
@@ -110,8 +115,6 @@ class TestPlantTable(unittest.TestCase):
 
     def test_plant_data(self,):
         """Checking if the plant table has the correct data"""
-        with patch('lib.app.engine', self.engine):
-            create_plants()
 
         with self.engine.connect() as conn:
             result = conn.execute(text("SELECT * FROM plant"))
@@ -129,7 +132,39 @@ class TestPlantTable(unittest.TestCase):
                 self.assertIn(plant, plant_types)
 
             # Check we have the expected number of plants (10 based on your create_plants function)
-        self.assertEqual(len(rows), 10)
+        self.assertEqual(len(rows), 10)#
+
+    def test_create_plant(self):
+        #this also tests reading a plant
+        """Test creating a plant"""
+        plant = Plant(plant_type="test_plant")
+        self.session.add(plant)
+        self.session.commit()
+
+        result = self.session.execute(select(Plant).where(Plant.plant_type == "test_plant")).scalar_one()
+        logger.debug(f"Created plant: {result.plant_type}")
+        self.assertEqual(result.plant_type, "test_plant")
+
+    def test_delete_plant(self):
+        """Test deleting a plant"""
+        plant = Plant(plant_type="to_delete")
+        self.session.add(plant)
+        self.session.commit()
+
+        # Store the plant_id before deletion
+        plant_id = plant.plant_id
+
+        # Delete the plant
+        self.session.delete(plant)
+        self.session.commit()
+
+        # Try to query for the deleted plant
+        result = self.session.execute(
+            select(Plant).where(Plant.plant_id == plant_id)
+        ).scalars().all()
+
+        # Assert that no results were found (plant was deleted)
+        self.assertEqual(len(result), 0, f"Plant with ID {plant_id} was not deleted")
 
     def tearDown(self):
         self.session.rollback()
@@ -146,6 +181,9 @@ def suite():
     suite.addTest(TestDatabaseInit('test_list_tables'))
     suite.addTest(TestPlantTable('test_columns'))
     suite.addTest(TestPlantTable('test_plant_data'))
+    suite.addTest(TestPlantTable('test_create_plant'))
+    suite.addTest(TestPlantTable('test_delete_plant'))
+
     #suite.addTest(TestDatabaseInit('test_appuser_table'))
 
     # add more below
