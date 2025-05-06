@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from lib.database import *
-from lib.app import on_startup, create_plants
+from lib.app import on_startup, create_plants, create_garden
 
 # this is all for logging so i dont comment print statements
 import logging
@@ -23,8 +23,7 @@ logger.addHandler(handler)
 # setUp and tearDown needing different cases to the usual is so annoying
 # this will be the formula for all the tests
 
-# connect to the database and says hello world
-class TestDatabaseInit(unittest.TestCase):
+class TestDatabaseSetup(unittest.TestCase):
     # setup is run before each test case
     @patch('lib.app.engine')
     def setUp(self, mock_engine):
@@ -40,6 +39,7 @@ class TestDatabaseInit(unittest.TestCase):
         self.session = Session()
 
     # unittest.main checks for all functions that start with test_ and runs them
+    # connects to the database and says hello world
     def test_hello_world(self):
         """Test basic connection to the database"""
         # connects to the database and runs a simple query
@@ -69,7 +69,6 @@ class TestDatabaseInit(unittest.TestCase):
     def tearDown(self):
         self.session.rollback()
         self.session.close()
-
 
 class TestPlantTable(unittest.TestCase):
     @patch('lib.app.engine')
@@ -170,23 +169,64 @@ class TestPlantTable(unittest.TestCase):
         self.session.rollback()
         self.session.close()
 
-class TestAppUserTable(unittest.TestCase):
-    pass
+class TestGardenTable(unittest.TestCase):
+
+    @patch('lib.app.engine')
+    def setUp(self, mock_engine):
+        """Set up an in-memory SQLite database for the tests"""
+        self.engine = create_engine("sqlite:///:memory:", echo=False)
+        mock_engine.return_value = self.engine
+
+        SQLModel.metadata.create_all(self.engine)
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+
+        with patch('lib.app.engine', self.engine):
+            create_garden()
+
+    def test_columns(self):
+        """Checking if the garden table exists and has the correct columns"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("PRAGMA table_info(garden)"))
+            columns = [row[1] for row in result.fetchall()]
+
+            logger.debug(f"Columns in garden table: {columns}")
+
+            expected_columns = ['garden_slot', 'plant_id', 'name', 'archived', 'maturity', 'plant_exp', 'last_watered']
+            for column in expected_columns:
+                self.assertIn(column, columns)
+
+            # check for unexpected columns
+            for column in columns:
+                if column not in expected_columns:
+                    self.fail(f"Unexpected column found: {column}")
+
+    def test_garden_data(self):
+        """Checking if the garden table has the correct data"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("SELECT * FROM garden"))
+            rows = result.fetchall()
+
+        logger.debug(f"Rows in garden table: {rows}")
+        self.assertTrue(len(rows) > 0, "No rows found in garden table")
+
+    def tearDown(self):
+        self.session.rollback()
+        self.session.close()
 
 # this is how you ditctate the order of the tests cause they run alphabetical by default for some reason
 def suite():
     """Define the order of test execution"""
     suite = unittest.TestSuite()
-    suite.addTest(TestDatabaseInit('test_hello_world'))
-    suite.addTest(TestDatabaseInit('test_list_tables'))
+    suite.addTest(TestDatabaseSetup('test_hello_world'))
+    suite.addTest(TestDatabaseSetup('test_list_tables'))
     suite.addTest(TestPlantTable('test_columns'))
     suite.addTest(TestPlantTable('test_plant_data'))
     suite.addTest(TestPlantTable('test_create_plant'))
     suite.addTest(TestPlantTable('test_delete_plant'))
-
-    #suite.addTest(TestDatabaseInit('test_appuser_table'))
-
-    # add more below
+    suite.addTest(TestGardenTable('test_columns'))
+    suite.addTest(TestGardenTable('test_garden_data'))
+    # add more tests as needed
 
     return suite
 
