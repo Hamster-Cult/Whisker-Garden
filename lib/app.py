@@ -283,6 +283,7 @@ def create_garden():
             session.add(pre_built_plant)
             session.add(default_plant)
             session.commit()
+
     except SQLAlchemyError as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating garden: {e}")
@@ -313,6 +314,7 @@ def create_goals():
             for goal in goals:
                 session.add(goal)
             session.commit()
+
     except SQLAlchemyError as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating goals: {e}")
