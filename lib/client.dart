@@ -17,8 +17,9 @@ Future<List<dynamic>> getData(String path) async {
 }
 
 // to handle erros :[
+
 Future<http.Response> getData2(String path) async {
-  var url = Uri.parse('http://127.0.0.1:8000$path');
+  var url = Uri.parse('https://127.0.0.1:8000$path');
   final response = await http.get(url);
   return response;
 

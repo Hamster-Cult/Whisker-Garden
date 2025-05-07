@@ -146,6 +146,15 @@ class _HomePageState extends State<HomePage> {
                     future: getData('/garden/current-details'),
                     builder: (context, snapshot) {
                       if (snapshot.hasData) {
+                        if (snapshot.data![0]['maturity'] == 5) {
+                          return Column(
+                            children: [
+                              Text("Congrats on fully growing your plant!"),
+                              CustomButton(destination: MoodLoggingPage(), // make page to select/unlock new plants
+                              text: 'pick a new plant')
+                            ]
+                          );
+                        }
                         if (snapshot.data![0]['plant_exp'] == 0) {
                           return Column(
                           children: [
@@ -378,40 +387,54 @@ class GardenShelfPage extends StatefulWidget {
 
 // has the information for the plants on the shelf
 class _GardenShelfPageState extends State<GardenShelfPage> {
-  // find out how to dynamically resize images
+  // find out how to dynamically resize images cause dawg :standing:
+  List<Widget> shelves = [];
+  int _currentPage = 1;
+  //make a page that prompts the user to make an entry if there are none
 
-  // currently hardcoded plants, fetch the data
-  List shelves = [
-    GardenShelf(plants: [
-      ShelfPlant(image: 'assets/plant-min2.png'),
-      ShelfPlant(image: 'assets/plant-min2.png'),
-      ShelfPlant(image: 'assets/plant-min2.png'),
-      ]),
-    GardenShelf(plants: [
-      ShelfPlant(image: 'assets/plant-min.png'),
-      ShelfPlant(image: 'assets/plant-min2.png'),
-      ShelfPlant(image: 'assets/plant-min.png'),
-      ShelfPlant(image: 'assets/plant-min.png'),
-    ]),
-  ];
-  int _currentShelf = 0;
+  void fillShelves() async {
+    final List<dynamic> data = await getData('/garden/$_currentPage');
+    shelves = []; // clears the list for each refresh
+    List<ShelfPlant> plants = [];
+
+    // fetching and displaying the right plants but erm
+    // it's repating more fix that ty
+    for (var i = 1; i < 4; i++) {
+      for (var item in data) {
+        setState(() {
+        plants.add(
+          ShelfPlant(image: 'assets/plants/${item['plant_id']}/${item['maturity']}.png')
+        );
+      });
+      }
+    }
+    setState(() {
+      shelves.add(GardenShelf(plants: plants));
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fillShelves();
+  }
 
   void _onSwipeLeft() {setState(() {
-      if (_currentShelf < shelves.length) {
-        _currentShelf ++;
+      if (_currentPage < shelves.length) {
+        _currentPage ++;
         }
     })
   ;}
   void _onSwipeRight() {setState(() {
-    if (_currentShelf != 0) {
-          _currentShelf --;
+    if (_currentPage != 0) {
+          _currentPage --;
         }
       })
     ;}
 
   @override
   Widget build(BuildContext context) {
-    Widget displayShelf = shelves[_currentShelf];
+    List<Widget> displayShelf = shelves;
 
     return Scaffold(
       body: Center(
@@ -427,7 +450,7 @@ class _GardenShelfPageState extends State<GardenShelfPage> {
                     _onSwipeLeft();
                   }
                 },
-                child: displayShelf,
+                child: Column(children: displayShelf,),
             ),
           ],
         ),
@@ -527,7 +550,7 @@ class MoodLoggingPage extends StatelessWidget {
 
 // in-between page mood logging - entry writing (confirmation lol)
 class WriteEntryPromptPage extends StatelessWidget {
-  final int mood;// translate mood to text value
+  final int mood;
   const WriteEntryPromptPage ({super.key, required this.mood});
 
   @override
@@ -612,6 +635,7 @@ class _SubmissionPageState extends State<SubmissionPage> {
   @override 
   void initState() {
     super.initState();
+    showEditEntry();
     getUserData();
   }
 
@@ -652,13 +676,19 @@ class _SubmissionPageState extends State<SubmissionPage> {
                   "level": levelDetails[1],
                   "exp": levelDetails[0]
                   };
-                
+
+                int maturity = plantData[0]['maturity'];
+                bool archived = false;
+                if (maturity == 5) {
+                  archived = true;
+                }
+
                 Map updatePlant =
                   {
                   "garden_slot": 2,
                   "plant_id": userData[0]['plant_id'],
                   "name": userData[0]['name'],
-                  "archived": false, //if they've achieved their goal then?
+                  "archived": archived,
                   "maturity": plantData[0]['maturity'],
                   "plant_exp": plantData[0]['plant_exp'],
                   "last_watered": DateFormat('y-MM-d').format(DateTime.now())
@@ -667,12 +697,30 @@ class _SubmissionPageState extends State<SubmissionPage> {
                 sendData('/entry', entryData);
                 sendData('/water', updateEXP);
                 sendData('/water/plant', updatePlant);
+
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => 
+                  ViewEntryPage(
+                    entry: widget.entry!,
+                    mood: (widget.mood).toString(),
+                    fromSubmission: true,)));
                   }, 
-                  child: CustomButton(destination: ViewEntryPage(
-                          mood: '${widget.mood}',
-                          entry: widget.entry!,
-                          fromSubmission: true,
-                        ), text: 'submit')
+                  child: Container(
+                    margin: EdgeInsets.all(10),
+                    width: 200,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: pinkBg,
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                              'submit',
+                              style: TextStyle(color: pinkText, fontSize: 20),
+                              ),
+                    ),
+                        ),
                 ),
         ],
       ),
@@ -723,11 +771,33 @@ class _EntryWritingPageState extends State<EntryWritingPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 CustomBackButton(text: "cancel"),
-                CustomButton(destination: SubmissionPage(
+                GestureDetector(
+              onTap: () { // find out how to change the image shown on tap
+                Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => 
+                        SubmissionPage(
                               mood: widget.mood,
                               entryWritten: true,
                               entry: entryController.text
-                              ), text: 'finish'),
+                              )));
+                  },
+                  child: Container(
+                    margin: EdgeInsets.all(10),
+                    width: 200,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: pinkBg,
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                              'finish',
+                              style: TextStyle(color: pinkText, fontSize: 20),
+                              ),
+                    ),
+                        ),
+                ),
               ],
             ),
           ],
@@ -1356,3 +1426,29 @@ class _makeUserPageState extends State<makeUserPage> {
   }
 }
 
+class PlantStore extends StatelessWidget {
+  const PlantStore({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [Text('plant store yippie')]
+      )
+    );
+  }
+}
+
+class AssignNewPlantPage extends StatelessWidget {
+  const AssignNewPlantPage({super.key});
+  // fetch all unlcoked plant types and display them
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [Text('pick new yippe')]
+      )
+    );
+  }
+}

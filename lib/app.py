@@ -175,6 +175,19 @@ def get_entries(page_number: int, session: SessionDep):
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}")
 
+@app.get("/garden/{page_number}")
+def get_entries(page_number: int, session: SessionDep):
+    try:
+        with Session(engine) as session:
+            offset = 16 * (page_number - 1)
+            return session.exec(
+                select(Garden)
+                .offset(offset)
+                .limit(16)).all()
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}")
+
 @app.get("/user")
 def get_user_data():
     try:
