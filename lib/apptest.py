@@ -102,7 +102,7 @@ class TestPlantTable(unittest.TestCase):
             logger.debug(f"Columns in plant table: {columns}")
 
             # check that the expected columns exist
-            expected_columns = ['plant_id', 'plant_type', 'unlocked']
+            expected_columns = ['plant_id', 'plant_type', 'unlocked', 'price']
             for column in expected_columns:
                 self.assertIn(column, columns)
 
