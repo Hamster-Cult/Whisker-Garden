@@ -343,12 +343,11 @@ def create_garden():
                 archived=True,
                 maturity=5,
                 plant_exp=150,
-                last_watered='2025-04-03')
-
+                last_watered= date(2025, 4, 3))
             session.add(pre_built_plant)
             session.add(default_plant)
             session.commit()
-
+            
     except SQLAlchemyError as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating garden: {e}")
