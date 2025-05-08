@@ -4,12 +4,14 @@
 
 import unittest
 from unittest.mock import patch
+from fastapi import HTTPException
 from sqlmodel import create_engine, SQLModel
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 from lib.database import *
-from lib.app import on_startup, create_plants, create_garden
+# from lib.app import *
+import lib.app
 
 # this is all for logging so i dont comment print statements
 import logging
@@ -93,7 +95,7 @@ class TestPlantTable(unittest.TestCase):
         # i cant remember why i needed the patch but it's needed
         # just runs the function that creates the plants in the database for the rest of this class to use
         with patch('lib.app.engine', self.engine):
-            create_plants()
+            lib.app.create_plants()
 
     def test_columns(self):
         """Checking if the plant table exists and has the correct columns"""
@@ -189,7 +191,7 @@ class TestGardenTable(unittest.TestCase):
         self.session = Session()
 
         with patch('lib.app.engine', self.engine):
-            create_garden()
+            lib.app.create_garden()
 
     def test_columns(self):
         """Checking if the garden table exists and has the correct columns"""
@@ -222,7 +224,33 @@ class TestGardenTable(unittest.TestCase):
         self.session.close()
         self.engine.dispose()
 
+<<<<<<< Updated upstream
 # this is how you dictate the order of the tests cause they run alphabetical by default for some reason
+=======
+# Testing for SQLAlchemy Error
+class ExceptionTesting(unittest.TestCase):
+    @patch("lib.app.SQLModel.metadata.create_all")
+    def test_creating_db_tables(self, mock_create_all):
+        mock_create_all.side_effect = SQLAlchemyError("DB error")
+
+        with self.assertRaises(HTTPException) as context:
+            lib.app.create_db_and_tables()
+        
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Error creating tables", context.exception.detail)
+
+    @patch("lib.app.Session")
+    def test_get_session(self, mock_session):
+        mock_session.side_effect = SQLAlchemyError("Session DB")
+
+        with self.assertRaises(HTTPException) as context:
+            list(lib.app.get_session())
+        
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Error creating session", context.exception.detail)
+
+# this is how you ditctate the order of the tests cause they run alphabetical by default for some reason
+>>>>>>> Stashed changes
 def suite():
     """Define the order of test execution"""
     suite = unittest.TestSuite()
