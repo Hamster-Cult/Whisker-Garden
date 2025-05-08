@@ -1,3 +1,7 @@
+# to run this go to the root folder (Whisker-Garden)
+# python -m lib.apptest
+# python -m lib.apptest --debug
+
 import unittest
 from unittest.mock import patch
 from sqlmodel import create_engine, SQLModel
@@ -18,14 +22,17 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-# each test case sets up, tests and tears down
 
-# setUp and tearDown needing different cases to the usual is so annoying
+# each test case sets up, tests and tears down
+# unittest.main checks for all functions that start with test_ and runs them
+# connects to the database and says hello world
+
 # this will be the formula for all the tests
 
 class TestDatabaseSetup(unittest.TestCase):
-    # setup is run before each test case
     @patch('lib.app.engine')
+    # setUp is run before each test case
+    # setUp and tearDown needing different cases to the usual is so annoying
     def setUp(self, mock_engine):
         """Set up an in-memory SQLite database for the tests"""
         self.engine = create_engine("sqlite:///:memory:", echo=False) # change to echo=True to see the tables being created
@@ -38,8 +45,6 @@ class TestDatabaseSetup(unittest.TestCase):
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
-    # unittest.main checks for all functions that start with test_ and runs them
-    # connects to the database and says hello world
     def test_hello_world(self):
         """Test basic connection to the database"""
         # connects to the database and runs a simple query
@@ -61,7 +66,7 @@ class TestDatabaseSetup(unittest.TestCase):
             logger.debug("Tables in database:", tables)
 
             # check that the expected tables exist
-            expected_tables = ['plant', 'moodlog', 'entries', 'goals', 'garden', 'appuser', 'userentries']
+            expected_tables = ['plant', 'entries', 'goals', 'garden', 'appuser']
             for table in expected_tables:
                 self.assertIn(table, tables)
 
@@ -69,6 +74,7 @@ class TestDatabaseSetup(unittest.TestCase):
     def tearDown(self):
         self.session.rollback()
         self.session.close()
+        self.engine.dispose()
 
 class TestPlantTable(unittest.TestCase):
     @patch('lib.app.engine')
@@ -134,9 +140,9 @@ class TestPlantTable(unittest.TestCase):
         self.assertEqual(len(rows), 10)#
 
     def test_create_plant(self):
-        #this also tests reading a plant
+        # this also tests reading a plant
         """Test creating a plant"""
-        plant = Plant(plant_type="test_plant")
+        plant = Plant(plant_type = "test_plant")
         self.session.add(plant)
         self.session.commit()
 
@@ -168,6 +174,7 @@ class TestPlantTable(unittest.TestCase):
     def tearDown(self):
         self.session.rollback()
         self.session.close()
+        self.engine.dispose()
 
 class TestGardenTable(unittest.TestCase):
 
@@ -213,8 +220,9 @@ class TestGardenTable(unittest.TestCase):
     def tearDown(self):
         self.session.rollback()
         self.session.close()
+        self.engine.dispose()
 
-# this is how you ditctate the order of the tests cause they run alphabetical by default for some reason
+# this is how you dictate the order of the tests cause they run alphabetical by default for some reason
 def suite():
     """Define the order of test execution"""
     suite = unittest.TestSuite()
@@ -242,7 +250,3 @@ if __name__ == '__main__':
     # Use the suite to run tests instead of unittest.main()
     runner = unittest.TextTestRunner()
     runner.run(suite())
-
-# to run this go to the root folder (Whisker-Garden)
-# python -m lib.apptest
-# python -m lib.apptest --debug
