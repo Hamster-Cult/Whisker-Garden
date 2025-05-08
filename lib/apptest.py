@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 from sqlmodel import create_engine, SQLModel
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.orm import sessionmaker
 from lib.database import *
 from lib.app import on_startup, create_plants, create_garden
@@ -20,8 +20,6 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-
-
 
 # each test case sets up, tests and tears down
 # unittest.main checks for all functions that start with test_ and runs them
@@ -171,6 +169,30 @@ class TestPlantTable(unittest.TestCase):
         # Assert that no results were found (plant was deleted)
         self.assertEqual(len(result), 0, f"Plant with ID {plant_id} was not deleted")
 
+    def test_column_types(self):
+        """Test the data types of columns in the Plant table"""
+        # inspector to check specific column types
+        inspector = inspect(self.engine)
+
+        # column information for the plant table
+        columns = inspector.get_columns('plant')
+
+        # log column information
+        for column in columns:
+            logger.debug(f"Column: {column['name']}, Type: {column['type']}")
+
+        column_types = {col['name']: col['type'].__class__.__name__ for col in columns}
+
+        # check specific columns
+        self.assertIn('plant_id', column_types)
+        self.assertEqual(column_types['plant_id'], 'INTEGER')
+
+        self.assertIn('plant_type', column_types)
+        self.assertEqual(column_types['plant_type'], 'VARCHAR')
+
+        self.assertIn('unlocked', column_types)
+        self.assertEqual(column_types['unlocked'], 'BOOLEAN')
+
     def tearDown(self):
         self.session.rollback()
         self.session.close()
@@ -216,6 +238,41 @@ class TestGardenTable(unittest.TestCase):
 
         logger.debug(f"Rows in garden table: {rows}")
         self.assertTrue(len(rows) > 0, "No rows found in garden table")
+
+    def test_column_types(self):
+        """Test the data types of columns in the Plant table"""
+        # inspector to check specific column types
+        inspector = inspect(self.engine)
+
+        # column information for the plant table
+        columns = inspector.get_columns('plant')
+
+        # log column information
+        for column in columns:
+            logger.debug(f"Column: {column['name']}, Type: {column['type']}")
+
+        column_types = {col['name']: col['type'].__class__.__name__ for col in columns}
+
+        self.assertIn('garden_slot', column_types)
+        self.assertEqual(column_types['plant_id'], 'INTEGER')
+
+        self.assertIn('plant_id', column_types)
+        self.assertEqual(column_types['plant_type'], 'INTEGER')
+
+        self.assertIn('name', column_types)
+        self.assertEqual(column_types['unlocked'], 'STRING')
+
+        self.assertIn('archived', column_types)
+        self.assertEqual(column_types['archived'], 'BOOLEAN')
+
+        self.assertIn('maturity', column_types)
+        self.assertEqual(column_types['maturity'], 'INTEGER')
+
+        self.assertIn('plant_exp', column_types)
+        self.assertEqual(column_types['plant_exp'], 'INTEGER')
+
+        self.assertIn('last_watered', column_types)
+        self.assertEqual(column_types['last_watered'], 'DATE')
 
     def tearDown(self):
         self.session.rollback()
