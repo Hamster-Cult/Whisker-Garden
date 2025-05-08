@@ -92,7 +92,7 @@ def get_exp():
         raise HTTPException(status_code=500, detail=f"Error retrieving User EXP: {e}")
 
 @app.get("/garden/current-details")
-def get_exp():
+def get_plant_details():
     try:
         with Session(engine) as session:
             results = session.exec(
