@@ -71,6 +71,26 @@ class TestDatabaseSetup(unittest.TestCase):
             expected_tables = ['plant', 'entries', 'goals', 'garden', 'appuser']
             for table in expected_tables:
                 self.assertIn(table, tables)
+    
+    @patch("lib.app.Session")
+    def test_get_session(self, mock_session):
+        mock_session.side_effect = SQLAlchemyError("Session DB")
+
+        with self.assertRaises(HTTPException) as context:
+            list(lib.app.get_session())
+        
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Error creating session", context.exception.detail)
+
+    @patch("lib.app.SQLModel.metadata.create_all")
+    def test_creating_db_tables(self, mock_create_all):
+        mock_create_all.side_effect = SQLAlchemyError("DB error")
+
+        with self.assertRaises(HTTPException) as context:
+            lib.app.create_db_and_tables()
+        
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Error creating tables", context.exception.detail)
 
     # tearDown is run after each test case
     def tearDown(self):
@@ -224,10 +244,9 @@ class TestGardenTable(unittest.TestCase):
         self.session.close()
         self.engine.dispose()
 
-<<<<<<< Updated upstream
 # this is how you dictate the order of the tests cause they run alphabetical by default for some reason
-=======
-# Testing for SQLAlchemy Error
+
+""" -------- Testing for SQLAlchemy Error -------- """
 class ExceptionTesting(unittest.TestCase):
     @patch("lib.app.SQLModel.metadata.create_all")
     def test_creating_db_tables(self, mock_create_all):
@@ -250,7 +269,6 @@ class ExceptionTesting(unittest.TestCase):
         self.assertIn("Error creating session", context.exception.detail)
 
 # this is how you ditctate the order of the tests cause they run alphabetical by default for some reason
->>>>>>> Stashed changes
 def suite():
     """Define the order of test execution"""
     suite = unittest.TestSuite()

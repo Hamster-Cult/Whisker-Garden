@@ -57,7 +57,7 @@ def on_startup(username: str):
     create_goals()
 
 @app.get("/user/plant")
-def get_plant_asset():
+def get_plant_asset(): # ???
     try:
         with Session(engine) as session:
             plants = session.exec(select(Plant)).all()
@@ -73,7 +73,7 @@ def get_plant_asset():
 # defines each path in a link and what it does
 
 @app.get("/exp")
-def get_exp():
+def get_exp(): # Gets user exp
     try:
         with Session(engine) as session:
             results = session.exec(
@@ -91,7 +91,7 @@ def get_exp():
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving User EXP: {e}")
 
-@app.get("/garden/current-details")
+@app.get("/garden/current-details") # Get plant details for the current plant
 def get_plant_details():
     try:
         with Session(engine) as session:
@@ -132,17 +132,17 @@ def create_entry(entry: Entries, session: SessionDep):
         raise HTTPException(status_code=500, detail=f"Error creating entry: {e}")
 
 @app.post("/buy")
-def buy_plant(plant: Plant, session: SessionDep):
+def buy_plant(plant: Plant, session: SessionDep): # Updates plants when bought from the store
     try:
         with Session(engine) as session:
             session.add(Plant)
             session.commit()
-    except exceptSQLAlchemyError as e:
+    except SQLAlchemyError as e:
         session.rollback()
-        raise HTTPException(status_code=500, detail=f"error buying plant: {e}")
+        raise HTTPException(status_code=500, detail=f"Error buying plant: {e}")
 
 @app.post('/water')
-def water_plant(user: AppUser, session: SessionDep):
+def water_plant(user: AppUser, session: SessionDep): # Updates user data when plant is waterd
     try:
         with Session(engine) as session:
             dbUser = session.exec(
@@ -158,7 +158,7 @@ def water_plant(user: AppUser, session: SessionDep):
         raise HTTPException(status_code=500, detail=f"Error updating user data: {e}")
 
 @app.post('/water/plant')
-def water_plant(plant: Garden, session: SessionDep):
+def water_plant(plant: Garden, session: SessionDep): # Updates values when a plant is watered
     try:
         with Session(engine) as session:
             dbGarden = session.exec(select(Garden).where(Garden.archived == False)).one()
@@ -173,7 +173,7 @@ def water_plant(plant: Garden, session: SessionDep):
         raise HTTPException(status_code=500, detail=f"Error updating garden data: {e}")
 
 @app.get("/entries/{page_number}")
-def get_entries(page_number: int, session: SessionDep):
+def get_entries(page_number: int, session: SessionDep): # Collects 4 entries to view on the entries page
     try:
         with Session(engine) as session:
             offset = 4 * (page_number - 1)
@@ -186,7 +186,7 @@ def get_entries(page_number: int, session: SessionDep):
         raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}")
 
 @app.get("/garden/{page_number}")
-def get_entries(page_number: int, session: SessionDep):
+def get_entries(page_number: int, session: SessionDep): # Collects 16 plants from the garden to display on 
     try:
         with Session(engine) as session:
             offset = 16 * (page_number - 1)
@@ -198,7 +198,7 @@ def get_entries(page_number: int, session: SessionDep):
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}") # copy pasted the code pls fix the error handling
 
-@app.get("/unlocked")
+@app.get("/unlocked") # Collects all unlocked plants for the user to pick from when selecting a new plant
 def get_entries(session: SessionDep):
     try:
         with Session(engine) as session:
@@ -207,9 +207,9 @@ def get_entries(session: SessionDep):
                 .where(Plant.unlocked == True)).all()
     except SQLAlchemyError as e:
         session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}") # copy pasted the code pls fix the error handling
+        raise HTTPException(status_code=500, detail=f"Error retrieving unlocked plants: {e}") # copy pasted the code pls fix the error handling
 
-@app.get("/locked")
+@app.get("/locked") # Collects all locked plants
 def get_entries(session: SessionDep):
     try:
         with Session(engine) as session:
@@ -218,10 +218,10 @@ def get_entries(session: SessionDep):
                 .where(Plant.unlocked == False)).all()
     except SQLAlchemyError as e:
         session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}") # copy pasted the code pls fix the error handling
+        raise HTTPException(status_code=500, detail=f"Error retrieving locked plants: {e}") # copy pasted the code pls fix the error handling
 
 
-@app.get("/user")
+@app.get("/user") # Collects all user data
 def get_user_data():
     try:
         with Session(engine) as session:
@@ -230,13 +230,13 @@ def get_user_data():
                 raise HTTPException(status_code=404, detail="Error 404: User not found")
             return user
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Error retreiving user data: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retreiving akl user data: {e}")
 
-def month_days(month):
+def month_days(month): # Function to get number of days based on month
     days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31] # no support for leap years lmao
     return days[int(month)]
 
-@app.get("/calendar/{start_date}")
+@app.get("/calendar/{start_date}") # Gets all the entries made in a month
 def view_month(start_date: date, session: SessionDep):
     try:
         with Session(engine) as session:
@@ -258,7 +258,7 @@ def view_month(start_date: date, session: SessionDep):
 
 
 @app.get("/delete")
-def delete_user(session: SessionDep):
+def delete_user(session: SessionDep): # deletes all tables and userdata
     try:
         with Session(engine) as session:
             SQLModel.metadata.drop_all(engine)
