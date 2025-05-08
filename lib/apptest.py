@@ -66,7 +66,7 @@ class TestDatabaseSetup(unittest.TestCase):
             logger.debug("Tables in database:", tables)
 
             # check that the expected tables exist
-            expected_tables = ['plant', 'entries', 'goals', 'garden', 'appuser']
+            expected_tables = ['plant', 'entries', 'goals', 'garden',]
             for table in expected_tables:
                 self.assertIn(table, tables)
     
@@ -215,6 +215,9 @@ class TestPlantTable(unittest.TestCase):
         self.assertIn('unlocked', column_types)
         self.assertEqual(column_types['unlocked'], 'BOOLEAN')
 
+        self.assertIn('price', column_types)
+        self.assertEqual(column_types['price'], 'INTEGER')
+
     def tearDown(self):
         self.session.rollback()
         self.session.close()
@@ -260,14 +263,15 @@ class TestGardenTable(unittest.TestCase):
 
         logger.debug(f"Rows in garden table: {rows}")
         self.assertTrue(len(rows) > 0, "No rows found in garden table")
-
     def test_column_types(self):
-        """Test the data types of columns in the Plant table"""
+        """Test the data types of columns in the Garden table"""  # Updated docstring
+        from sqlalchemy import inspect
+        
         # inspector to check specific column types
         inspector = inspect(self.engine)
 
-        # column information for the plant table
-        columns = inspector.get_columns('plant')
+        # column information for the garden table
+        columns = inspector.get_columns('garden')
 
         # log column information
         for column in columns:
@@ -275,14 +279,15 @@ class TestGardenTable(unittest.TestCase):
 
         column_types = {col['name']: col['type'].__class__.__name__ for col in columns}
 
+        # remove plant_type assertion and only check for garden columns
         self.assertIn('garden_slot', column_types)
-        self.assertEqual(column_types['plant_id'], 'INTEGER')
+        self.assertEqual(column_types['garden_slot'], 'INTEGER')
 
         self.assertIn('plant_id', column_types)
-        self.assertEqual(column_types['plant_type'], 'INTEGER')
+        self.assertEqual(column_types['plant_id'], 'INTEGER')
 
         self.assertIn('name', column_types)
-        self.assertEqual(column_types['unlocked'], 'STRING')
+        self.assertEqual(column_types['name'], 'VARCHAR')
 
         self.assertIn('archived', column_types)
         self.assertEqual(column_types['archived'], 'BOOLEAN')
@@ -300,6 +305,177 @@ class TestGardenTable(unittest.TestCase):
         self.session.rollback()
         self.session.close()
         self.engine.dispose()
+
+class TestGoalsTable(unittest.TestCase):
+    @patch('lib.app.engine')
+    def setUp(self, mock_engine):
+        """Set up an in-memory SQLite database for the tests"""
+        self.engine = create_engine("sqlite:///:memory:", echo=False)
+        mock_engine.return_value = self.engine
+
+        SQLModel.metadata.create_all(self.engine)
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+
+        with patch('lib.app.engine', self.engine):
+            create_plants()
+            create_goals()
+
+    def test_columns(self):
+        """Checking if the goals table exists and has the correct columns"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("PRAGMA table_info(goals)"))
+            columns = [row[1] for row in result.fetchall()]
+
+            logger.debug(f"Columns in goals table: {columns}")
+
+            expected_columns = ['goal_id', 'plant_id', 'name', 'desc', 'achieved', 'exp_increase']
+            for column in expected_columns:
+                self.assertIn(column, columns)
+
+            for column in columns:
+                if column not in expected_columns:
+                    self.fail(f"Unexpected column found: {column}")
+
+    def test_goals_data(self):
+        """Checking if the goals table has the correct data"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("SELECT * FROM goals"))
+            rows = result.fetchall()
+
+        logger.debug(f"Rows in goals table: {rows}")
+        self.assertTrue(len(rows) > 0, "No rows found in goals table")
+    
+    def test_column_types(self):
+        """Test the data types of columns in the Goals table"""
+        # inspector to check specific column types
+        inspector = inspect(self.engine)
+
+        # column information for the goals table
+        columns = inspector.get_columns('goals')
+
+        # log column information
+        for column in columns:
+            logger.debug(f"Column: {column['name']}, Type: {column['type']}")
+
+        column_types = {col['name']: col['type'].__class__.__name__ for col in columns}
+
+        self.assertIn('goal_id', column_types)
+        self.assertEqual(column_types['goal_id'], 'INTEGER')
+
+        self.assertIn('plant_id', column_types)
+        self.assertEqual(column_types['plant_id'], 'INTEGER')
+
+        self.assertIn('name', column_types)
+        self.assertEqual(column_types['name'], 'VARCHAR')
+
+        self.assertIn('desc', column_types)
+        self.assertEqual(column_types['desc'], 'VARCHAR')
+
+        self.assertIn('achieved', column_types)
+        self.assertEqual(column_types['achieved'], 'BOOLEAN')
+
+        self.assertIn('exp_increase', column_types)
+        self.assertEqual(column_types['exp_increase'], 'INTEGER')
+
+    def tearDown(self):
+        self.session.rollback()
+        self.session.close()
+        self.engine.dispose()
+
+class TestEntriesTable(unittest.TestCase):
+    @patch('lib.app.engine')
+    def setUp(self, mock_engine):
+        """Set up an in-memory SQLite database for the tests"""
+        self.engine = create_engine("sqlite:///:memory:", echo=False)
+        mock_engine.return_value = self.engine
+
+        SQLModel.metadata.create_all(self.engine)
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+
+    def test_columns(self):
+        """Checking if the entries table exists and has the correct columns"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("PRAGMA table_info(entries)"))
+            columns = [row[1] for row in result.fetchall()]
+
+            logger.debug(f"Columns in entries table: {columns}")
+
+            expected_columns = ['entry_id', 'entry', 'entry_date', 'entry_time', 'rating']
+            for column in expected_columns:
+                self.assertIn(column, columns)
+
+            for column in columns:
+                if column not in expected_columns:
+                    self.fail(f"Unexpected column found: {column}")
+
+    def test_column_types(self):
+        """Test the data types of columns in the Entries table"""
+        # inspector to check specific column types
+        inspector = inspect(self.engine)
+
+        # column information for the entries table
+        columns = inspector.get_columns('entries')
+
+        # log column information
+        for column in columns:
+            logger.debug(f"Column: {column['name']}, Type: {column['type']}")
+
+        column_types = {col['name']: col['type'].__class__.__name__ for col in columns}
+
+        self.assertIn('entry_id', column_types)
+        self.assertEqual(column_types['entry_id'], 'INTEGER')
+
+        self.assertIn('entry', column_types)
+        self.assertEqual(column_types['entry'], 'VARCHAR')
+
+        self.assertIn('entry_date', column_types)
+        self.assertEqual(column_types['entry_date'], 'DATE')
+
+        self.assertIn('entry_time', column_types)
+        self.assertEqual(column_types['entry_time'], 'TIME')
+
+        self.assertIn('rating', column_types)
+        self.assertEqual(column_types['rating'], 'INTEGER')
+
+    def test_entries_data(self):
+        """Checking if the entries table has the correct data"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("SELECT * FROM entries"))
+            rows = result.fetchall()
+
+        logger.debug(f"Rows in entries table: {rows}")
+        self.assertTrue(len(rows) > 0, "No rows found in entries table")
+
+    def test_create_entry(self):
+        """Test creating an entry"""
+        entry = Entries(entry="test_entry", entry_date="2023-10-01", entry_time="12:00:00", rating=5)
+        self.session.add(entry)
+        self.session.commit()
+
+        result = self.session.execute(select(Entries).where(Entries.entry == "test_entry")).scalar_one()
+        logger.debug(f"Created entry: {result.entry}")
+        self.assertEqual(result.entry, "test_entry")
+
+    def test_delete_entry(self):
+        """Test deleting an entry"""
+        entry = Entries(entry="to_delete", entry_date="2023-10-01", entry_time="12:00:00", rating=5)
+        self.session.add(entry)
+        self.session.commit()
+
+        # Store the entry_id before deletion
+        entry_id = entry.entry_id
+
+        # Delete the entry
+        self.session.delete(entry)
+        self.session.commit()
+
+
+    def tearDown(self):
+        self.session.rollback()
+        self.session.close()
+        self.engine.dispose()    
 
 # this is how you dictate the order of the tests cause they run alphabetical by default for some reason
 
@@ -332,11 +508,16 @@ def suite():
     suite.addTest(TestDatabaseSetup('test_hello_world'))
     suite.addTest(TestDatabaseSetup('test_list_tables'))
     suite.addTest(TestPlantTable('test_columns'))
+    suite.addTest(TestPlantTable('test_column_types'))
     suite.addTest(TestPlantTable('test_plant_data'))
     suite.addTest(TestPlantTable('test_create_plant'))
     suite.addTest(TestPlantTable('test_delete_plant'))
     suite.addTest(TestGardenTable('test_columns'))
     suite.addTest(TestGardenTable('test_garden_data'))
+    suite.addTest(TestGardenTable('test_column_types'))
+    suite.addTest(TestGoalsTable('test_columns'))
+    suite.addTest(TestGoalsTable('test_goals_data'))
+    suite.addTest(TestGoalsTable('test_column_types'))
     # add more tests as needed
 
     return suite

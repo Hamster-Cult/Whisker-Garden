@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from lib.database import *
 from json import *
 
-
 # url for the database
 postgresql_url = "postgresql://:@localhost/whisker"
 
