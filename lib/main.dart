@@ -125,7 +125,6 @@ class _HomePageState extends State<HomePage> {
                       future: getData('/garden/current-details'),
                       builder: (context, snapshot) {
                         if (snapshot.hasData) {
-                          // fetch the 0 aswell
                           int plantID = snapshot.data![0]['plant_id'];
                           int plantAge = snapshot.data![0]['maturity'];
                           String plantPath = "/$plantID/$plantAge.png";
@@ -150,7 +149,7 @@ class _HomePageState extends State<HomePage> {
                           return Column(
                             children: [
                               Text("Congrats on fully growing your plant!"),
-                              CustomButton(destination: MoodLoggingPage(), // make page to select/unlock new plants
+                              CustomButton(destination: AssignNewPlantPage(),
                               text: 'pick a new plant')
                             ]
                           );
@@ -442,6 +441,7 @@ class _GardenShelfPageState extends State<GardenShelfPage> {
           children: [
             NavigationDashboard(),
             LevelBar(),
+            CustomButton(destination: PlantStore(), text: 'store'),
             GestureDetector(
               onHorizontalDragEnd: (details) {
                   if (details.primaryVelocity! > 0) { // update which elemnts are shown
@@ -674,7 +674,8 @@ class _SubmissionPageState extends State<SubmissionPage> {
                   "plant_id": userData[0]['plant_id'],
                   "username": userData[0]['username'],
                   "level": levelDetails[1],
-                  "exp": levelDetails[0]
+                  "exp": levelDetails[0],
+                  "spendable_exp": levelDetails[0],
                   };
 
                 int maturity = plantData[0]['maturity'];
@@ -1426,14 +1427,135 @@ class _makeUserPageState extends State<makeUserPage> {
   }
 }
 
-class PlantStore extends StatelessWidget {
+class PlantStore extends StatefulWidget {
   const PlantStore({super.key});
 
   @override
+  State<PlantStore> createState() => _PlantStoreState();
+}
+
+class _PlantStoreState extends State<PlantStore> {
+  List<dynamic> userData = [];
+
+  void getUserData() async {
+    List<dynamic> userDataFetch = await getData('/user');
+    setState(() {
+      userData.add(userDataFetch);
+    });
+  }
+
+  final List<Image> plants = [];
+  final List<int> prices = [];
+  final List<String> names = [];
+  int _currentPlant = 0;
+
+  void getPlants() async {
+    List<dynamic> plantData = await getData("/locked");
+    for (var plant in plantData) {
+      setState(() {
+        plants.add(Image.asset('/assets/plants/${plant[0]['plant_id']}/5'));
+        prices.add(plant['price']);
+        names.add(plant['plant_type']);
+      });
+    }
+  }
+
+  void _onSwipeLeft() {setState(() {
+      if (_currentPlant < plants.length) {
+        _currentPlant ++;
+        }
+    })
+  ;}
+  void _onSwipeRight() {setState(() {
+    if (_currentPlant != 0) {
+          _currentPlant --;
+        }
+      })
+    ;}
+
+
+  @override
+  void initState() {
+    super.initState();
+    getPlants();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    Widget displayPlant = plants[_currentPlant];
+    int price = prices[_currentPlant];
+    String bttnText = 'Get Plant';
+
     return Scaffold(
       body: Column(
-        children: [Text('plant store yippie')]
+        children: [
+          NavigationDashboard(),
+          LevelBar(),
+          GestureDetector(
+            child: Column(
+              children: [
+                Image.asset(''), // swipe through available plants gest detec
+                Text('exp:')
+              ],
+            ),
+          ),
+          GestureDetector(
+            onHorizontalDragEnd: (details) {
+                  if (details.primaryVelocity! > 0) { // update which elemnts are shown
+                    _onSwipeRight();
+                  } else if (details.primaryVelocity! < 0) {
+                    _onSwipeLeft();
+                  }
+                },
+            child: Column(
+              children: [
+                Text("${userData[0]['spendable_ex']} EXP"),
+                displayPlant,
+                Text('$price exp'),
+                GestureDetector(
+                  onTap: () {
+                    // add a popup confirmation
+                    Map updateUser =
+                    {
+                    'user_id': userData[0]['user_id'],
+                    'garden_slot': userData[0]['garden_slot'],
+                    'username': userData[0]['username'],
+                    'level': userData[0]['level'],
+                    'exp': userData[0]['exp'],
+                    'spendable_exp': userData[0]['spendable_exp'] - price
+                    };
+
+                    Map updatePlants = {
+                      "plant_id": _currentPlant+1,
+                      "plant_type": names[_currentPlant],
+                      "unlocked": true,
+                      "price": null
+                    };
+
+                    sendData('/water', updateUser);
+                    sendData('/buy', updatePlants);
+                  },
+                  child: Container(
+                      margin: EdgeInsets.all(10),
+                      width: 200,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: pinkBg,
+                        borderRadius: BorderRadius.all(Radius.circular(10)),
+                          ),
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                                bttnText,
+                                style: TextStyle(color: pinkText, fontSize: 20),
+                                ),
+                              ),
+                          ),
+                ),
+                        ]
+                      ),
+                    ),
+                  ]
       )
     );
   }

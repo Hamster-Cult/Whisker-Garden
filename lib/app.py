@@ -131,6 +131,16 @@ def create_entry(entry: Entries, session: SessionDep):
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating entry: {e}")
 
+@app.post("/buy")
+def buy_plant(plant: Plant, session: SessionDep):
+    try:
+        with Session(engine) as session:
+            session.add(Plant)
+            session.commit()
+    except exceptSQLAlchemyError as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"error buying plant: {e}")
+
 @app.post('/water')
 def water_plant(user: AppUser, session: SessionDep):
     try:
@@ -186,7 +196,30 @@ def get_entries(page_number: int, session: SessionDep):
                 .limit(16)).all()
     except SQLAlchemyError as e:
         session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}") # copy pasted the code pls fix the error handling
+
+@app.get("/unlocked")
+def get_entries(session: SessionDep):
+    try:
+        with Session(engine) as session:
+            return session.exec(
+                select(Plant)
+                .where(Plant.unlocked == True)).all()
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}") # copy pasted the code pls fix the error handling
+
+@app.get("/locked")
+def get_entries(session: SessionDep):
+    try:
+        with Session(engine) as session:
+            return session.exec(
+                select(Plant)
+                .where(Plant.unlocked == False)).all()
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}") # copy pasted the code pls fix the error handling
+
 
 @app.get("/user")
 def get_user_data():
@@ -237,7 +270,8 @@ def create_user(name: str):
                 username=name,
                 garden_slot=2,# make sure it's linked properly
                 level=1,
-                exp=0)
+                exp=0,
+                spendable_exp=0)
             session.add(user)
             session.commit()
     except SQLAlchemyError as e:
@@ -248,26 +282,35 @@ def create_plants():
     try:
         with Session(engine) as session:
             plant_1 = Plant(
-                plant_type='tulips')
+                plant_type='tulips',
+                price = 10)
             plant_2 = Plant(
-                plant_type='hibiscus')
+                plant_type='hibiscus',
+                price = 20)
             plant_3 = Plant(
-                plant_type='hydrengea')
+                plant_type='hydrengea',
+                price = 30)
             plant_4 = Plant(
-                plant_type='wisteria')
+                plant_type='wisteria',
+                price = 40)
             plant_5 = Plant(
-                plant_type='cherry blossom')
+                plant_type='cherry blossom',
+                price=50)
             plant_6 = Plant(
-                plant_type='rose')
+                plant_type='rose',
+                price=60)
             plant_7 = Plant(
-                plant_type='bluebell')
+                plant_type='bluebell',
+                price=70)
             plant_8 = Plant(
                 plant_type='lily of the valley',
                 unlocked=True) # default
             plant_9 = Plant(
-                plant_type='spider lily')
+                plant_type='spider lily',
+                price=80)
             plant_10 = Plant(
-                plant_type='aster')
+                plant_type='aster',
+                price=90)
 
             plants = [plant_1, plant_2, plant_3, plant_4, plant_5, plant_6, plant_7, plant_8, plant_9, plant_10]
             for plant in plants:

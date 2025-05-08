@@ -55,7 +55,15 @@ flutter:
   assets:
     - assets/
     - assets/plants/1/
+    - assets/plants/2/
+    - assets/plants/3/
+    - assets/plants/4/
+    - assets/plants/5/
+    - assets/plants/6/
+    - assets/plants/7/
     - assets/plants/8/
+    - assets/plants/9/
+    - assets/plants/10/
     - assets/emotions/
 
   fonts:
