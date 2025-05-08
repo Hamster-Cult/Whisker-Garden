@@ -361,6 +361,99 @@ class TestGoalsTable(unittest.TestCase):
         self.session.close()
         self.engine.dispose()
 
+class TestEntriesTable(unittest.TestCase):
+    @patch('lib.app.engine')
+    def setUp(self, mock_engine):
+        """Set up an in-memory SQLite database for the tests"""
+        self.engine = create_engine("sqlite:///:memory:", echo=False)
+        mock_engine.return_value = self.engine
+
+        SQLModel.metadata.create_all(self.engine)
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+
+    def test_columns(self):
+        """Checking if the entries table exists and has the correct columns"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("PRAGMA table_info(entries)"))
+            columns = [row[1] for row in result.fetchall()]
+
+            logger.debug(f"Columns in entries table: {columns}")
+
+            expected_columns = ['entry_id', 'entry', 'entry_date', 'entry_time', 'rating']
+            for column in expected_columns:
+                self.assertIn(column, columns)
+
+            for column in columns:
+                if column not in expected_columns:
+                    self.fail(f"Unexpected column found: {column}")
+
+    def test_column_types(self):
+        """Test the data types of columns in the Entries table"""
+        # inspector to check specific column types
+        inspector = inspect(self.engine)
+
+        # column information for the entries table
+        columns = inspector.get_columns('entries')
+
+        # log column information
+        for column in columns:
+            logger.debug(f"Column: {column['name']}, Type: {column['type']}")
+
+        column_types = {col['name']: col['type'].__class__.__name__ for col in columns}
+
+        self.assertIn('entry_id', column_types)
+        self.assertEqual(column_types['entry_id'], 'INTEGER')
+
+        self.assertIn('entry', column_types)
+        self.assertEqual(column_types['entry'], 'VARCHAR')
+
+        self.assertIn('entry_date', column_types)
+        self.assertEqual(column_types['entry_date'], 'DATE')
+
+        self.assertIn('entry_time', column_types)
+        self.assertEqual(column_types['entry_time'], 'TIME')
+
+        self.assertIn('rating', column_types)
+        self.assertEqual(column_types['rating'], 'INTEGER')
+
+    def test_entries_data(self):
+        """Checking if the entries table has the correct data"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("SELECT * FROM entries"))
+            rows = result.fetchall()
+
+        logger.debug(f"Rows in entries table: {rows}")
+        self.assertTrue(len(rows) > 0, "No rows found in entries table")
+
+    def test_create_entry(self):
+        """Test creating an entry"""
+        entry = Entries(entry="test_entry", entry_date="2023-10-01", entry_time="12:00:00", rating=5)
+        self.session.add(entry)
+        self.session.commit()
+
+        result = self.session.execute(select(Entries).where(Entries.entry == "test_entry")).scalar_one()
+        logger.debug(f"Created entry: {result.entry}")
+        self.assertEqual(result.entry, "test_entry")
+
+    def test_delete_entry(self):
+        """Test deleting an entry"""
+        entry = Entries(entry="to_delete", entry_date="2023-10-01", entry_time="12:00:00", rating=5)
+        self.session.add(entry)
+        self.session.commit()
+
+        # Store the entry_id before deletion
+        entry_id = entry.entry_id
+
+        # Delete the entry
+        self.session.delete(entry)
+        self.session.commit()
+
+
+    def tearDown(self):
+        self.session.rollback()
+        self.session.close()
+        self.engine.dispose()    
 
 # this is how you dictate the order of the tests cause they run alphabetical by default for some reason
 def suite():
