@@ -13,23 +13,11 @@ class AppUser(SQLModel, table=True):
    exp: int = Field (nullable=False, min_length=0)
    spendable_exp: int = Field(nullable=False, min_length=0)
 
-class UserEntries(SQLModel, table=True):
-    user_id: int = Field(foreign_key="appuser.user_id", primary_key=True)
-    entry_id: int = Field(foreign_key="entries.entry_id", primary_key=True)
-
 class Plant(SQLModel, table=True):
     plant_id: int | None = Field(default=None, primary_key=True)
     plant_type: str = Field(max_length=20, nullable=False)
     unlocked: bool = Field(nullable=False, default=False) # might throw an error
     price: int = Field(nullable=True)
-
-class MoodLog(SQLModel, table=True): # don't think we need this since it's in entry?
-  mood_id: int | None = Field(default=None, primary_key=True)
-  mood_date: date = Field (nullable=False)
-  mood_date: date = Field (date, nullable=False)
-  mood_time: time =  Field (nullable=False)
-  mood_rating: int = Field (nullable=False, ge=1, le=5 ) # what is ge/le :sob:
-  mood_text: str | None = Field (default=None)
 
 class Goals(SQLModel, table=True):
   goal_id: int | None = Field(default=None, primary_key=True)

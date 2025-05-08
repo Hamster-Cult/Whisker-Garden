@@ -1453,7 +1453,7 @@ class _PlantStoreState extends State<PlantStore> {
     List<dynamic> plantData = await getData("/locked");
     for (var plant in plantData) {
       setState(() {
-        plants.add(Image.asset('/assets/plants/${plant[0]['plant_id']}/5'));
+        plants.add(Image.asset('/assets/plants/${plant['plant_id']}/5'));
         prices.add(plant['price']);
         names.add(plant['plant_type']);
       });
@@ -1526,7 +1526,7 @@ class _PlantStoreState extends State<PlantStore> {
                     };
 
                     Map updatePlants = {
-                      "plant_id": _currentPlant+1,
+                      "plant_id": _currentPlant + 1,
                       "plant_type": names[_currentPlant],
                       "unlocked": true,
                       "price": null
