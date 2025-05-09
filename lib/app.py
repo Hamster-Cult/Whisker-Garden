@@ -105,7 +105,7 @@ def get_plant_details():
                 .where(Garden.archived == False)
                 ).all()
             if not results:
-                raise HTTPException(status_code=404, detail="Error 404: Garden not found ")
+                raise HTTPException(status_code=404, detail="Error 404: Garden not found")
             results_json = []
             for plant_id, last_watered, maturity, plant_exp, garden_slot, archived in results:
                 results_json.append({
