@@ -48,7 +48,7 @@ app.add_middleware(
 
 # if any of the functions fail, an exception is raised
 @app.get("/setup/{username}") 
-def on_startup(username: str):
+def setup_user(username: str):
     create_db_and_tables()
     create_plants()
     create_garden()
@@ -56,7 +56,7 @@ def on_startup(username: str):
     create_goals()
 
 @app.get("/user/plant")
-def get_plant_asset(): # ???
+def get_plant_info(): # ???
     try:
         with Session(engine) as session:
             plants = session.exec(select(Plant)).all()
@@ -130,18 +130,35 @@ def create_entry(entry: Entries, session: SessionDep):
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating entry: {e}")
 
-@app.post("/buy")
+@app.post("/assign/")
+def assign_plant(plant: Garden, session: SessionDep):
+    try:
+        with Session(engine) as session:
+            session.add(plant)
+            session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Error buying plant: {e}")
+            
+
+@app.post("/buy") #doesn't this need to be an update?
 def buy_plant(plant: Plant, session: SessionDep): # Updates plants when bought from the store
     try:
         with Session(engine) as session:
-            session.add(Plant)
+            dbPlant = session.exec(
+                select(Plant)
+                .where(Plant.plant_id == plant.plant_id)).one()
+
+            dbPlant.plant_type = plant.plant_type
+            dbPlant.unlocked = true
+            session.add(dbPlant)
             session.commit()
     except SQLAlchemyError as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error buying plant: {e}")
 
 @app.post('/water')
-def water_plant(user: AppUser, session: SessionDep): # Updates user data when plant is waterd
+def gain_exp(user: AppUser, session: SessionDep): # Updates user data when plant is waterd
     try:
         with Session(engine) as session:
             dbUser = session.exec(
@@ -150,6 +167,7 @@ def water_plant(user: AppUser, session: SessionDep): # Updates user data when pl
 
             dbUser.level = user.level
             dbUser.exp = user.exp
+            dbUser.spendable_exp = user.spendable_exp
             session.add(dbUser)
             session.commit()
     except SQLAlchemyError as e:
@@ -185,7 +203,7 @@ def get_entries(page_number: int, session: SessionDep): # Collects 4 entries to 
         raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}")
 
 @app.get("/garden/{page_number}")
-def get_entries(page_number: int, session: SessionDep): # Collects 16 plants from the garden to display on 
+def get_garden_shelves(page_number: int, session: SessionDep): # Collects 16 plants from the garden to display on 
     try:
         with Session(engine) as session:
             offset = 16 * (page_number - 1)
@@ -198,7 +216,7 @@ def get_entries(page_number: int, session: SessionDep): # Collects 16 plants fro
         raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}") # copy pasted the code pls fix the error handling
 
 @app.get("/unlocked") # Collects all unlocked plants for the user to pick from when selecting a new plant
-def get_entries(session: SessionDep):
+def get_unlocked(session: SessionDep):
     try:
         with Session(engine) as session:
             return session.exec(
@@ -209,7 +227,7 @@ def get_entries(session: SessionDep):
         raise HTTPException(status_code=500, detail=f"Error retrieving unlocked plants: {e}") # copy pasted the code pls fix the error handling
 
 @app.get("/locked") # Collects all locked plants
-def get_entries(session: SessionDep):
+def get_locked(session: SessionDep):
     try:
         with Session(engine) as session:
             return session.exec(
