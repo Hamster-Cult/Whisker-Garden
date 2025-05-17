@@ -1,15 +1,16 @@
-# to run this go to the root folder (Whisker-Garden)
-# python -m lib.apptest
-# python -m lib.apptest --debug
 # if you're chloe and it isn't working use
 # py -m lib.apptest
 
+# to run this go to the root folder (Whisker-Garden)
 # steps for everything
 # python -m venv venv
 # venv\Scripts\activate
 # pip install fastapi "fastapi[standard]" "uvicorn[standard]" sqlmodel psycopg2 sqlalchemy
 # deactivate
 # venv\Scripts\activate
+# python -m lib.apptest
+# python -m lib.apptest --debug
+
 
 import unittest
 from unittest.mock import patch, MagicMock
