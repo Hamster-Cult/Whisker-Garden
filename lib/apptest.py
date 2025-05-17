@@ -3,7 +3,7 @@
 
 # to run this go to the root folder (Whisker-Garden)
 # steps for everything
-# python -m venv venv
+# py -m venv venv
 # venv\Scripts\activate
 # pip install fastapi "fastapi[standard]" "uvicorn[standard]" sqlmodel psycopg2 sqlalchemy
 # deactivate
@@ -77,11 +77,10 @@ class TestDatabaseSetup(unittest.TestCase):
             logger.debug("Tables in database:", tables)
 
             # check that the expected tables exist
-            expected_tables = ['plant', 'entries', 'goals', 'garden',]
+            expected_tables = ['plant', 'entries', 'goals', 'garden','appuser']
             for table in expected_tables:
                 self.assertIn(table, tables)
     
-    @patch("lib.app.Session")
     def test_get_session(self, mock_session):
         mock_session.side_effect = SQLAlchemyError("Session DB")
 
@@ -91,7 +90,6 @@ class TestDatabaseSetup(unittest.TestCase):
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error creating session", context.exception.detail)
 
-    @patch("lib.app.SQLModel.metadata.create_all")
     def test_creating_db_tables(self, mock_create_all):
         mock_create_all.side_effect = SQLAlchemyError("Database error")
 
@@ -448,100 +446,145 @@ class TestGoalsTable(unittest.TestCase):
         self.session.close()
         self.engine.dispose()
 
-# class TestEntriesTable(unittest.TestCase):
-#     @patch('lib.app.engine')
-#     def setUp(self, mock_engine):
-#         """Set up an in-memory SQLite database for the tests"""
-#         self.engine = create_engine("sqlite:///:memory:", echo=False)
-#         mock_engine.return_value = self.engine
+class TestBlankTable(unittest.TestCase):
+    @patch('lib.app.engine')
+    def setUp(self, mock_engine):
+        """Set up an in-memory SQLite database for the tests"""
+        self.engine = create_engine("sqlite:///:memory:", echo=False)
+        mock_engine.return_value = self.engine
 
-#         SQLModel.metadata.create_all(self.engine)
-#         Session = sessionmaker(bind=self.engine)
-#         self.session = Session()
+        SQLModel.metadata.create_all(self.engine)
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+        with patch('lib.app.engine', self.engine):
+            lib.app.create_blank_table()
+        
+    def test_columns(self):
+        """Checking if the blank table exists and has the correct columns"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("PRAGMA table_info(blank_table)"))
+            columns = [row[1] for row in result.fetchall()]
 
-#     def test_columns(self):
-#         """Checking if the entries table exists and has the correct columns"""
-#         with self.engine.connect() as conn:
-#             result = conn.execute(text("PRAGMA table_info(entries)"))
-#             columns = [row[1] for row in result.fetchall()]
+            logger.debug(f"Columns in blank table: {columns}")
 
-#             logger.debug(f"Columns in entries table: {columns}")
+            expected_columns = ['id', 'name', 'desc']
+            for column in expected_columns:
+                self.assertIn(column, columns)
 
-#             expected_columns = ['entry_id', 'entry', 'entry_date', 'entry_time', 'rating']
-#             for column in expected_columns:
-#                 self.assertIn(column, columns)
+            for column in columns:
+                if column not in expected_columns:
+                    self.fail(f"Unexpected column found: {column}")
 
-#             for column in columns:
-#                 if column not in expected_columns:
-#                     self.fail(f"Unexpected column found: {column}")
+    def tearDown(self):
+        self.session.rollback()
+        self.session.close()
+        self.engine.dispose()
 
-#     def test_column_types(self):
-#         """Test the data types of columns in the Entries table"""
-#         # inspector to check specific column types
-#         inspector = inspect(self.engine)
+class TestAAA(unittest.TestCase):
+    @patch('lib.app.engine')
+    def setUp(self, mock_engine):
+        """Set up an in-memory SQLite database for the tests"""
+        self.engine = create_engine("sqlite:///:memory:", echo=False)
+        mock_engine.return_value = self.engine
 
-#         # column information for the entries table
-#         columns = inspector.get_columns('entries')
+        SQLModel.metadata.create_all(self.engine)
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
 
-#         # log column information
-#         for column in columns:
-#             logger.debug(f"Column: {column['name']}, Type: {column['type']}")
+    def test_get_all_tables(self):
+        """Test retrieving all tables in the database"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
+            tables = [row[0] for row in result.fetchall()]
 
-#         column_types = {col['name']: col['type'].__class__.__name__ for col in columns}
+            logger.debug(f"Tables in database: {tables}")
+            # Check if the expected tables exist
+            expected_tables = ['plant', 'entries', 'goals', 'garden']
+            for table in expected_tables:
+                self.assertIn(table, tables)
 
-#         self.assertIn('entry_id', column_types)
-#         self.assertEqual(column_types['entry_id'], 'INTEGER')
+            # get schema of appuser 
+            result = conn.execute(text("SELECT sql FROM sqlite_master WHERE name='appuser'"))
+            schema = result.fetchone()
+            logger.debug(f"Schema for appuser: {schema[0]}")
 
-#         self.assertIn('entry', column_types)
-#         self.assertEqual(column_types['entry'], 'VARCHAR')
+    def tearDown(self):
+        self.session.rollback()
+        self.session.close()
+        self.engine.dispose()
 
-#         self.assertIn('entry_date', column_types)
-#         self.assertEqual(column_types['entry_date'], 'DATE')
+class TestAppUserTable(unittest.TestCase):
+    @patch('lib.app.engine')
+    def setUp(self, mock_engine):
+        """Set up an in-memory SQLite database for the tests"""
+        self.engine = create_engine("sqlite:///:memory:", echo=False)
+        mock_engine.return_value = self.engine
 
-#         self.assertIn('entry_time', column_types)
-#         self.assertEqual(column_types['entry_time'], 'TIME')
+        SQLModel.metadata.create_all(self.engine)
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
 
-#         self.assertIn('rating', column_types)
-#         self.assertEqual(column_types['rating'], 'INTEGER')
+        with patch('lib.app.engine', self.engine):
+            lib.app.create_user("chloe")
 
-#     def test_entries_data(self):
-#         """Checking if the entries table has the correct data"""
-#         with self.engine.connect() as conn:
-#             result = conn.execute(text("SELECT * FROM entries"))
-#             rows = result.fetchall()
+    def test_columns(self):
+        """Checking if the appuser table exists and has the correct columns"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("PRAGMA table_info(appuser)"))
+            columns = [row[1] for row in result.fetchall()]
 
-#         logger.debug(f"Rows in entries table: {rows}")
-#         self.assertTrue(len(rows) > 0, "No rows found in entries table")
+            logger.debug(f"Columns in appuser table: {columns}")
 
-#     def test_create_entry(self):
-#         """Test creating an entry"""
-#         entry = Entries(entry="test_entry", entry_date="2023-10-01", entry_time="12:00:00", rating=5)
-#         self.session.add(entry)
-#         self.session.commit()
+            expected_columns = ['user_id','garden_slot','username', 'level', 'exp', 'spendable_exp']
+            for column in expected_columns:
+                self.assertIn(column, columns)
 
-#         result = self.session.execute(select(Entries).where(Entries.entry == "test_entry")).scalar_one()
-#         logger.debug(f"Created entry: {result.entry}")
-#         self.assertEqual(result.entry, "test_entry")
+            for column in columns:
+                if column not in expected_columns:
+                    self.fail(f"Unexpected column found: {column}")
 
-#     def test_delete_entry(self):
-#         """Test deleting an entry"""
-#         entry = Entries(entry="to_delete", entry_date="2023-10-01", entry_time="12:00:00", rating=5)
-#         self.session.add(entry)
-#         self.session.commit()
+    def test_column_types(self):
+        """Test the data types of columns in the Users table"""
+        # inspector to check specific column types
+        inspector = inspect(self.engine)
 
-#         # Store the entry_id before deletion
-#         entry_id = entry.entry_id
+        # column information for the goals table
+        columns = inspector.get_columns('appuser')
 
-#         # Delete the entry
-#         self.session.delete(entry)
-#         self.session.commit()
+        # log column information
+        for column in columns:
+            logger.debug(f"Column: {column['name']}, Type: {column['type']}")
 
+        column_types = {col['name']: col['type'].__class__.__name__ for col in columns}
 
-#     def tearDown(self):
-#         self.session.rollback()
-#         self.session.close()
-#         self.engine.dispose()    
+        self.assertIn('user_id', column_types)
+        self.assertEqual(column_types['user_id'], 'INTEGER')
 
+        self.assertIn('garden_slot', column_types)
+        self.assertEqual(column_types['garden_slot'], 'INTEGER')
+
+        self.assertIn('username', column_types)
+        self.assertEqual(column_types['username'], 'VARCHAR')
+
+        self.assertIn('level', column_types)
+        self.assertEqual(column_types['level'], 'INTEGER')
+
+        self.assertIn('exp', column_types)
+        self.assertEqual(column_types['exp'], 'INTEGER')
+
+    def test_user_data(self):
+        """Checking if the appuser table has the correct data"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("SELECT * FROM appuser"))
+            rows = result.fetchall()
+
+        logger.debug(f"Rows in appuser table: {rows}")
+        self.assertTrue(len(rows) > 0, "No rows found in appuser table")
+
+    def tearDown(self):
+        self.session.rollback()
+        self.session.close()
+        self.engine.dispose()
 
 # this is how you ditctate the order of the tests cause they run alphabetical by default for some reason
 def suite():
@@ -560,6 +603,9 @@ def suite():
     suite.addTest(TestGoalsTable('test_columns'))
     suite.addTest(TestGoalsTable('test_goals_data'))
     suite.addTest(TestGoalsTable('test_column_types'))
+    suite.addTest(TestAppUserTable('test_columns'))
+    suite.addTest(TestAppUserTable('test_column_types'))
+    suite.addTest(TestAppUserTable('test_user_data'))
     # add more tests as needed
 
     return suite
