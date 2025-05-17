@@ -480,39 +480,6 @@ class TestBlankTable(unittest.TestCase):
         self.session.close()
         self.engine.dispose()
 
-class TestAAA(unittest.TestCase):
-    @patch('lib.app.engine')
-    def setUp(self, mock_engine):
-        """Set up an in-memory SQLite database for the tests"""
-        self.engine = create_engine("sqlite:///:memory:", echo=False)
-        mock_engine.return_value = self.engine
-
-        SQLModel.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
-
-    def test_get_all_tables(self):
-        """Test retrieving all tables in the database"""
-        with self.engine.connect() as conn:
-            result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
-            tables = [row[0] for row in result.fetchall()]
-
-            logger.debug(f"Tables in database: {tables}")
-            # Check if the expected tables exist
-            expected_tables = ['plant', 'entries', 'goals', 'garden']
-            for table in expected_tables:
-                self.assertIn(table, tables)
-
-            # get schema of appuser 
-            result = conn.execute(text("SELECT sql FROM sqlite_master WHERE name='appuser'"))
-            schema = result.fetchone()
-            logger.debug(f"Schema for appuser: {schema[0]}")
-
-    def tearDown(self):
-        self.session.rollback()
-        self.session.close()
-        self.engine.dispose()
-
 class TestAppUserTable(unittest.TestCase):
     @patch('lib.app.engine')
     def setUp(self, mock_engine):
@@ -579,6 +546,7 @@ class TestAppUserTable(unittest.TestCase):
             rows = result.fetchall()
 
         logger.debug(f"Rows in appuser table: {rows}")
+        logger.debug(f"Result from auppusertable: {result}")
         self.assertTrue(len(rows) > 0, "No rows found in appuser table")
 
     def tearDown(self):
