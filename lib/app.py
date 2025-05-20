@@ -187,7 +187,7 @@ def water_plant(plant: Garden, session: SessionDep): # Updates values when a pla
             session.commit()
     except SQLAlchemyError as e:
         session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error updating garden data: {e}")
+        raise HTTPException(status_code=500, detail=f"Error updating plant values: {e}")
 
 @app.get("/entries/{page_number}")
 def get_entries(page_number: int, session: SessionDep): # Collects 4 entries to view on the entries page
@@ -212,8 +212,7 @@ def get_garden_shelves(page_number: int, session: SessionDep): # Collects 16 pla
                 .offset(offset)
                 .limit(16)).all()
     except SQLAlchemyError as e:
-        session.rollback()
-        raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}") # copy pasted the code pls fix the error handling
+        raise HTTPException(status_code=500, detail=f"Error retrieving garden shelves: {e}") 
 
 @app.get("/unlocked") # Collects all unlocked plants for the user to pick from when selecting a new plant
 def get_unlocked(session: SessionDep):

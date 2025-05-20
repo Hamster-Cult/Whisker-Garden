@@ -13,7 +13,7 @@
 
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from fastapi import HTTPException
 from sqlmodel import create_engine, SQLModel
 from sqlalchemy.exc import SQLAlchemyError
@@ -81,7 +81,7 @@ class TestDatabaseSetup(unittest.TestCase):
             for table in expected_tables:
                 self.assertIn(table, tables)
     
-    def test_get_session(self, mock_session):
+    def test_get_session_error(self, mock_session):
         mock_session.side_effect = SQLAlchemyError("Session DB")
 
         with self.assertRaises(HTTPException) as context:
@@ -90,7 +90,7 @@ class TestDatabaseSetup(unittest.TestCase):
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error creating session", context.exception.detail)
 
-    def test_creating_db_tables(self, mock_create_all):
+    def test_creating_db_tables_error(self, mock_create_all):
         mock_create_all.side_effect = SQLAlchemyError("Database error")
 
         with self.assertRaises(HTTPException) as context:
@@ -98,6 +98,42 @@ class TestDatabaseSetup(unittest.TestCase):
         
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error creating tables", context.exception.detail)
+
+    def test_creating_plants_error(self, mock_session):
+        mock_session.return_value.__enter__.return_value.commit.side_effect = SQLAlchemyError("Database error")
+        
+        with self.assertRaises(HTTPException) as context:
+            lib.app.create_plants()
+
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Error creating plants: ", context.exception.detail)
+    
+    def test_creating_garden_error(self, mock_session):
+        mock_session.return_value.__enter__.return_value.commit.side_effect = SQLAlchemyError("Database error")
+        
+        with self.assertRaises(HTTPException) as context:
+            lib.app.create_garden()
+
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Error creating garden: ", context.exception.detail)
+    
+    def test_creating_user_error(self, mock_session):
+        mock_session.return_value.__enter__.return_value.commit.side_effect = SQLAlchemyError("Database error")
+        
+        with self.assertRaises(HTTPException) as context:
+            lib.app.create_user("oiiaoiia")
+
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Error creating user: ", context.exception.detail)
+    
+    def test_creating_goals_error(self, mock_session):
+        mock_session.return_value.__enter__.return_value.commit.side_effect = SQLAlchemyError("Database error")
+        
+        with self.assertRaises(HTTPException) as context:
+            lib.app.create_goals()
+
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Error creating goals: ", context.exception.detail)
 
     # tearDown is run after each test case
     def tearDown(self):
@@ -269,7 +305,7 @@ class TestPlantTable(unittest.TestCase):
         self.assertIn("Error retrieving garden progress: ", context.exception.detail)
 
     @patch("lib.app.Session")
-    def test_buy_plant(self, mock_session):
+    def test_buy_plant_error(self, mock_session):
         mock_session.return_value.__enter__.return_value.add.side_effect = SQLAlchemyError("Database error")
 
         dummy_plant = lib.app.Plant()
@@ -279,6 +315,36 @@ class TestPlantTable(unittest.TestCase):
 
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error buying plant: ", context.exception.detail)
+
+    @patch("lib.app.Session")
+    def test_water_plant_error(self, mock_session):
+        mock_session.return_value.__enter__.return_value.exec.side_effect = SQLAlchemyError("Database error")
+
+        dummy_plant = Garden(
+            plant_id=1,
+            last_watered="2025-05-11T00:00:00",
+            maturity=10,
+            plant_exp=30,
+            garden_slot=1,
+            archived=False
+        )
+
+        with self.assertRaises(HTTPException) as context:
+            lib.app.water_plant(dummy_plant, None)
+        
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Error updating plant values: ", context.exception.detail)
+
+    @patch("lib.app.Session")
+    def test_get_garden_shelves_error(self, mock_session):
+        mock_session.return_value.__enter__.return_value.exec.side_effect = SQLAlchemyError("Database error")
+
+        with self.assertRaises(HTTPException) as context:
+            lib.app.get_garden_shelves(page_number=1, session=None)
+        
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Error retrieving garden shelves: ", context.exception.detail)
+
 
 
     def tearDown(self):
@@ -548,6 +614,19 @@ class TestAppUserTable(unittest.TestCase):
         logger.debug(f"Rows in appuser table: {rows}")
         logger.debug(f"Result from auppusertable: {result}")
         self.assertTrue(len(rows) > 0, "No rows found in appuser table")
+
+    @patch("lib.app.Session")
+    def test_gain_user_exp_error(self, mock_session):
+        mock_session.return_value.__enter__.return_value.exec.side_effect = SQLAlchemyError("Database error")
+
+        dummy_user = AppUser(user_level=1, level=2, exp=100, spendable_exp=50)
+        
+        with self.assertRaises(HTTPException) as context:
+            lib.app.gain_exp(dummy_user, None)
+
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Error updating user data: ", context.exception.detail)
+
 
     def tearDown(self):
         self.session.rollback()
