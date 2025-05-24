@@ -42,22 +42,20 @@ logger.addHandler(handler)
 
 class BaseTestCase(unittest.TestCase):
     """Base class for all test cases, providing common setup and teardown methods."""
-
     # setUp is run before each test case
     # setUp and tearDown needing different cases to the usual is so annoying
     def setUp(self):
         """Set up an in-memory SQLite database for tests"""
         self.engine = create_engine("sqlite:///:memory:", echo=False)
 
-        # Patch the app engine to use our test engine
+        # patch the app engine to use our test engine
         self.engine_patcher = patch('lib.app.engine', self.engine)
         self.mock_engine = self.engine_patcher.start()
 
-        # Create tables and session
+        # create tables and session
         SQLModel.metadata.create_all(self.engine)
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
-
 
     # tearDown is run after each test case
     # tearDown is used to clean up after each test case
@@ -76,6 +74,7 @@ class TestDatabaseSetup(BaseTestCase):
             result = conn.execute(text("SELECT 'hello world'"))
             # fetches the result of the query
             rows = result.fetchall()
+
         # checks if the result is what we executed
         self.assertEqual(rows, [('hello world',)])
 
@@ -483,13 +482,6 @@ class TestGoalsTable(BaseTestCase):
 
         self.assertIn('exp_increase', column_types)
         self.assertEqual(column_types['exp_increase'], 'INTEGER')
-
-    def tearDown(self):
-        self.session.rollback()
-        self.session.close()
-        self.engine.dispose()
-
-class TestBlankTable(unittest.TestCase):
     @patch('lib.app.engine')
     def setUp(self, mock_engine):
         """Set up an in-memory SQLite database for the tests"""
@@ -517,11 +509,6 @@ class TestBlankTable(unittest.TestCase):
             for column in columns:
                 if column not in expected_columns:
                     self.fail(f"Unexpected column found: {column}")
-
-    def tearDown(self):
-        self.session.rollback()
-        self.session.close()
-        self.engine.dispose()
 
 class TestAppUserTable(unittest.TestCase):
     @patch('lib.app.engine')
