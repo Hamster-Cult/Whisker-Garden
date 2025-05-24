@@ -522,7 +522,7 @@ class TestAppUserTable(unittest.TestCase):
         self.session = Session()
 
         with patch('lib.app.engine', self.engine):
-            lib.app.create_user("chloe")
+            lib.app.create_user("test_user")
 
     def test_columns(self):
         """Checking if the appuser table exists and has the correct columns"""
