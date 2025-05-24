@@ -554,6 +554,29 @@ class TestAppUserTable(BaseTestCase):
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error updating user data: ", context.exception.detail)
 
+class TestGetEntries(BaseTestCase):
+    from datetime import date, time
+    def test_get_entries_success(self):
+        entries = [
+            Entries(entry="Test entry 1", entry_date=date(2024, 10, 1), entry_time=time(19, 0, 23), rating=5),
+            Entries(entry="Test entry 2", entry_date=date(2024, 10, 2), entry_time=time(14, 20, 42), rating=4),
+            Entries(entry="Test entry 3", entry_date=date(2024, 10, 3), entry_time=time(14, 0, 31), rating=3),
+            Entries(entry="Test entry 4", entry_date=date(2024, 10, 4), entry_time=time(18, 3, 20), rating=4),
+            Entries(entry="Test entry 5", entry_date=date(2024, 10, 5), entry_time=time(12, 15, 45), rating=5)
+        ]
+        self.session.add_all(entries)
+        self.session.commit()
+
+        result = lib.app.get_entries(page_number=1, session=self.session)
+        self.assertEqual(len(result), 4)
+        self.assertEqual(result[0].entry, "Test entry 1")
+        self.assertEqual(result[-1].entry, "Test entry 4")
+
+        result = lib.app.get_entries(page_number=2, session=self.session)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].entry, "Test entry 5")
+
+
 # this is how you ditctate the order of the tests cause they run alphabetical by default for some reason
 def suite():
     """Define the order of test execution"""
@@ -574,6 +597,7 @@ def suite():
     suite.addTest(TestAppUserTable('test_columns'))
     suite.addTest(TestAppUserTable('test_column_types'))
     suite.addTest(TestAppUserTable('test_user_data'))
+    suite.addTest(TestGetEntries('test_get_entries_success'))
     # add more tests as needed
 
     return suite
