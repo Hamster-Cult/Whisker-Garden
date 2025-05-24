@@ -28,7 +28,7 @@ import lib.app
 import logging
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)  # Default to INFO level
+logger.setLevel(logging.INFO)  # defaults to INFO level
 handler = logging.StreamHandler()
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
@@ -36,9 +36,6 @@ logger.addHandler(handler)
 
 # each test case sets up, tests and tears down
 # unittest.main checks for all functions that start with test_ and runs them
-# connects to the database and says hello world
-
-# this will be the formula for all the tests
 
 class BaseTestCase(unittest.TestCase):
     """Base class for all test cases, providing common setup and teardown methods."""
@@ -66,6 +63,8 @@ class BaseTestCase(unittest.TestCase):
         self.engine.dispose()
         self.engine_patcher.stop()
 
+# this will be the formula for all the tests
+# connects to the database and says hello world
 class TestDatabaseSetup(BaseTestCase):
     def test_hello_world(self):
         """Test basic connection to the database"""
@@ -482,47 +481,11 @@ class TestGoalsTable(BaseTestCase):
 
         self.assertIn('exp_increase', column_types)
         self.assertEqual(column_types['exp_increase'], 'INTEGER')
-    @patch('lib.app.engine')
-    def setUp(self, mock_engine):
-        """Set up an in-memory SQLite database for the tests"""
-        self.engine = create_engine("sqlite:///:memory:", echo=False)
-        mock_engine.return_value = self.engine
 
-        SQLModel.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
-        with patch('lib.app.engine', self.engine):
-            lib.app.create_blank_table()
-
-    def test_columns(self):
-        """Checking if the blank table exists and has the correct columns"""
-        with self.engine.connect() as conn:
-            result = conn.execute(text("PRAGMA table_info(blank_table)"))
-            columns = [row[1] for row in result.fetchall()]
-
-            logger.debug(f"Columns in blank table: {columns}")
-
-            expected_columns = ['id', 'name', 'desc']
-            for column in expected_columns:
-                self.assertIn(column, columns)
-
-            for column in columns:
-                if column not in expected_columns:
-                    self.fail(f"Unexpected column found: {column}")
-
-class TestAppUserTable(unittest.TestCase):
-    @patch('lib.app.engine')
-    def setUp(self, mock_engine):
-        """Set up an in-memory SQLite database for the tests"""
-        self.engine = create_engine("sqlite:///:memory:", echo=False)
-        mock_engine.return_value = self.engine
-
-        SQLModel.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
-
-        with patch('lib.app.engine', self.engine):
-            lib.app.create_user("test_user")
+class TestAppUserTable(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        lib.app.create_user("test_user")
 
     def test_columns(self):
         """Checking if the appuser table exists and has the correct columns"""
@@ -590,12 +553,6 @@ class TestAppUserTable(unittest.TestCase):
 
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error updating user data: ", context.exception.detail)
-
-
-    def tearDown(self):
-        self.session.rollback()
-        self.session.close()
-        self.engine.dispose()
 
 # this is how you ditctate the order of the tests cause they run alphabetical by default for some reason
 def suite():
