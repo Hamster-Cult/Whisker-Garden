@@ -3,7 +3,7 @@
 
 # to run this go to the root folder (Whisker-Garden)
 # steps for everything
-# py -m venv venv
+# python -m venv venv
 # venv\Scripts\activate
 # pip install fastapi "fastapi[standard]" "uvicorn[standard]" sqlmodel psycopg2 sqlalchemy
 # deactivate
@@ -40,22 +40,35 @@ logger.addHandler(handler)
 
 # this will be the formula for all the tests
 
-class TestDatabaseSetup(unittest.TestCase):
-    @patch('lib.app.engine')
+class BaseTestCase(unittest.TestCase):
+    """Base class for all test cases, providing common setup and teardown methods."""
+
     # setUp is run before each test case
     # setUp and tearDown needing different cases to the usual is so annoying
-    def setUp(self, mock_engine):
-        """Set up an in-memory SQLite database for the tests"""
-        self.engine = create_engine("sqlite:///:memory:", echo=False) # change to echo=True to see the tables being created
-        # this runs the function but as an in memory database that we will have to scrap
-        mock_engine.return_value = self.engine
+    def setUp(self):
+        """Set up an in-memory SQLite database for tests"""
+        self.engine = create_engine("sqlite:///:memory:", echo=False)
 
-        # create tables using SQLModel directly instead of calling create_db_and_tables
+        # Patch the app engine to use our test engine
+        self.engine_patcher = patch('lib.app.engine', self.engine)
+        self.mock_engine = self.engine_patcher.start()
+
+        # Create tables and session
         SQLModel.metadata.create_all(self.engine)
-
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
+
+    # tearDown is run after each test case
+    # tearDown is used to clean up after each test case
+    def tearDown(self):
+        """Clean up after each test"""
+        self.session.rollback()
+        self.session.close()
+        self.engine.dispose()
+        self.engine_patcher.stop()
+
+class TestDatabaseSetup(BaseTestCase):
     def test_hello_world(self):
         """Test basic connection to the database"""
         # connects to the database and runs a simple query
@@ -80,85 +93,75 @@ class TestDatabaseSetup(unittest.TestCase):
             expected_tables = ['plant', 'entries', 'goals', 'garden','appuser']
             for table in expected_tables:
                 self.assertIn(table, tables)
-    
+
+    @patch("lib.app.Session")
     def test_get_session_error(self, mock_session):
         mock_session.side_effect = SQLAlchemyError("Session DB")
 
         with self.assertRaises(HTTPException) as context:
             list(lib.app.get_session())
-        
+
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error creating session", context.exception.detail)
 
+    @patch("lib.app.Session")
     def test_creating_db_tables_error(self, mock_create_all):
         mock_create_all.side_effect = SQLAlchemyError("Database error")
 
         with self.assertRaises(HTTPException) as context:
             lib.app.create_db_and_tables()
-        
+
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error creating tables", context.exception.detail)
 
+    @patch("lib.app.Session")
     def test_creating_plants_error(self, mock_session):
         mock_session.return_value.__enter__.return_value.commit.side_effect = SQLAlchemyError("Database error")
-        
+
         with self.assertRaises(HTTPException) as context:
             lib.app.create_plants()
 
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error creating plants: ", context.exception.detail)
-    
+
+    @patch("lib.app.Session")
     def test_creating_garden_error(self, mock_session):
         mock_session.return_value.__enter__.return_value.commit.side_effect = SQLAlchemyError("Database error")
-        
+
         with self.assertRaises(HTTPException) as context:
             lib.app.create_garden()
 
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error creating garden: ", context.exception.detail)
-    
+
+    @patch("lib.app.Session")
     def test_creating_user_error(self, mock_session):
         mock_session.return_value.__enter__.return_value.commit.side_effect = SQLAlchemyError("Database error")
-        
+
         with self.assertRaises(HTTPException) as context:
             lib.app.create_user("oiiaoiia")
 
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error creating user: ", context.exception.detail)
-    
+
+    @patch("lib.app.Session")
     def test_creating_goals_error(self, mock_session):
         mock_session.return_value.__enter__.return_value.commit.side_effect = SQLAlchemyError("Database error")
-        
+
         with self.assertRaises(HTTPException) as context:
             lib.app.create_goals()
 
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error creating goals: ", context.exception.detail)
 
-    # tearDown is run after each test case
-    def tearDown(self):
-        self.session.rollback()
-        self.session.close()
-        self.engine.dispose()
-
-class TestPlantTable(unittest.TestCase):
-    @patch('lib.app.engine')
-    def setUp(self, mock_engine):
-        """Set up an in-memory SQLite database for the tests"""
-        # this runs the function but as an in-memory database that we will have to scrap
-        # in-memory so we dont risk damage to the actual database
-        self.engine = create_engine("sqlite:///:memory:", echo=False) # change to echo=True to see the tables being created
-        mock_engine.return_value = self.engine
-
-        # no idea what this is doing but it works so im not touching it
-        SQLModel.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
-
-        # i cant remember why i needed the patch but it's needed
-        # just runs the function that creates the plants in the database for the rest of this class to use
-        with patch('lib.app.engine', self.engine):
-            lib.app.create_plants()
+class TestPlantTable(BaseTestCase):
+    # so when we need more setup for a specific test class we will call the original setUp method and then add specific setup
+    def setUp(self):
+        """Additional setup for plant tests"""
+        # calls the BaseTestCase setUp method
+        super().setUp()
+        # does extra setup
+        lib.app.create_plants()
 
     def test_columns(self):
         """Checking if the plant table exists and has the correct columns"""
@@ -267,10 +270,10 @@ class TestPlantTable(unittest.TestCase):
     @patch("lib.app.Session")
     def test_get_plant_asset_no_plants(self, mock_session):
         mock_session.return_value.__enter__.return_value.exec.return_value.all.return_value = []
-        
-        with self.assertRaises(HTTPException) as context: 
+
+        with self.assertRaises(HTTPException) as context:
             lib.app.get_plant_asset()
-        
+
         self.assertEqual(context.exception.status_code, 404)
         self.assertIn("Error 404: Plants not found", context.exception.detail)
 
@@ -280,7 +283,7 @@ class TestPlantTable(unittest.TestCase):
 
         with self.assertRaises(HTTPException) as context:
             lib.app.get_plant_asset()
-        
+
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error retrieving plant assets: ", context.exception.detail)
 
@@ -290,7 +293,7 @@ class TestPlantTable(unittest.TestCase):
 
         with self.assertRaises(HTTPException) as context:
             lib.app.get_plant_details()
-        
+
         self.assertEqual(context.exception.status_code, 404)
         self.assertIn("Error 404: Garden not found", context.exception.detail)
 
@@ -300,7 +303,7 @@ class TestPlantTable(unittest.TestCase):
 
         with self.assertRaises(HTTPException) as context:
             lib.app.get_plant_details()
-        
+
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error retrieving garden progress: ", context.exception.detail)
 
@@ -331,7 +334,7 @@ class TestPlantTable(unittest.TestCase):
 
         with self.assertRaises(HTTPException) as context:
             lib.app.water_plant(dummy_plant, None)
-        
+
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error updating plant values: ", context.exception.detail)
 
@@ -341,31 +344,14 @@ class TestPlantTable(unittest.TestCase):
 
         with self.assertRaises(HTTPException) as context:
             lib.app.get_garden_shelves(page_number=1, session=None)
-        
+
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error retrieving garden shelves: ", context.exception.detail)
 
-
-
-    def tearDown(self):
-        self.session.rollback()
-        self.session.close()
-        self.engine.dispose()
-
-class TestGardenTable(unittest.TestCase):
-
-    @patch('lib.app.engine')
-    def setUp(self, mock_engine):
-        """Set up an in-memory SQLite database for the tests"""
-        self.engine = create_engine("sqlite:///:memory:", echo=False)
-        mock_engine.return_value = self.engine
-
-        SQLModel.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
-
-        with patch('lib.app.engine', self.engine):
-            lib.app.create_garden()
+class TestGardenTable(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        lib.app.create_garden()
 
     def test_columns(self):
         """Checking if the garden table exists and has the correct columns"""
@@ -392,10 +378,11 @@ class TestGardenTable(unittest.TestCase):
 
         logger.debug(f"Rows in garden table: {rows}")
         self.assertTrue(len(rows) > 0, "No rows found in garden table")
+
     def test_column_types(self):
         """Test the data types of columns in the Garden table"""  # Updated docstring
         from sqlalchemy import inspect
-        
+
         # inspector to check specific column types
         inspector = inspect(self.engine)
 
@@ -430,25 +417,15 @@ class TestGardenTable(unittest.TestCase):
         self.assertIn('last_watered', column_types)
         self.assertEqual(column_types['last_watered'], 'DATE')
 
-    def tearDown(self):
         self.session.rollback()
         self.session.close()
         self.engine.dispose()
 
-class TestGoalsTable(unittest.TestCase):
-    @patch('lib.app.engine')
-    def setUp(self, mock_engine):
-        """Set up an in-memory SQLite database for the tests"""
-        self.engine = create_engine("sqlite:///:memory:", echo=False)
-        mock_engine.return_value = self.engine
-
-        SQLModel.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
-
-        with patch('lib.app.engine', self.engine):
-            lib.app.create_plants()
-            lib.app.create_goals()
+class TestGoalsTable(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        lib.app.create_plants()
+        lib.app.create_goals()
 
     def test_columns(self):
         """Checking if the goals table exists and has the correct columns"""
@@ -474,7 +451,7 @@ class TestGoalsTable(unittest.TestCase):
 
         logger.debug(f"Rows in goals table: {rows}")
         self.assertTrue(len(rows) > 0, "No rows found in goals table")
-    
+
     def test_column_types(self):
         """Test the data types of columns in the Goals table"""
         # inspector to check specific column types
@@ -524,7 +501,7 @@ class TestBlankTable(unittest.TestCase):
         self.session = Session()
         with patch('lib.app.engine', self.engine):
             lib.app.create_blank_table()
-        
+
     def test_columns(self):
         """Checking if the blank table exists and has the correct columns"""
         with self.engine.connect() as conn:
@@ -620,7 +597,7 @@ class TestAppUserTable(unittest.TestCase):
         mock_session.return_value.__enter__.return_value.exec.side_effect = SQLAlchemyError("Database error")
 
         dummy_user = AppUser(user_level=1, level=2, exp=100, spendable_exp=50)
-        
+
         with self.assertRaises(HTTPException) as context:
             lib.app.gain_exp(dummy_user, None)
 
