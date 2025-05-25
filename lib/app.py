@@ -150,7 +150,7 @@ def buy_plant(plant: Plant, session: SessionDep): # Updates plants when bought f
                 .where(Plant.plant_id == plant.plant_id)).one()
 
             dbPlant.plant_type = plant.plant_type
-            dbPlant.unlocked = true
+            dbPlant.unlocked = True
             session.add(dbPlant)
             session.commit()
     except SQLAlchemyError as e:
@@ -203,7 +203,7 @@ def get_entries(page_number: int, session: SessionDep): # Collects 4 entries to 
         raise HTTPException(status_code=500, detail=f"Error retrieving entries: {e}")
 
 @app.get("/garden/{page_number}")
-def get_garden_shelves(page_number: int, session: SessionDep): # Collects 16 plants from the garden to display on 
+def get_garden_shelves(page_number: int, session: SessionDep): # Collects 16 plants from the garden to display on
     try:
         with Session(engine) as session:
             offset = 16 * (page_number - 1)
@@ -212,7 +212,7 @@ def get_garden_shelves(page_number: int, session: SessionDep): # Collects 16 pla
                 .offset(offset)
                 .limit(16)).all()
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Error retrieving garden shelves: {e}") 
+        raise HTTPException(status_code=500, detail=f"Error retrieving garden shelves: {e}")
 
 @app.get("/unlocked") # Collects all unlocked plants for the user to pick from when selecting a new plant
 def get_unlocked(session: SessionDep):
