@@ -576,6 +576,10 @@ class TestGetEntries(BaseTestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].entry, "Test entry 5")
 
+    def test_get_entries_no_entries(self):
+        """Test getting entries when no entries exist"""
+        result = lib.app.get_entries(page_number=1, session=self.session)
+        self.assertEqual(len(result), 0, "Expected no entries but found some")
 
 # this is how you ditctate the order of the tests cause they run alphabetical by default for some reason
 def suite():
@@ -583,6 +587,9 @@ def suite():
     suite = unittest.TestSuite()
     suite.addTest(TestDatabaseSetup('test_hello_world'))
     suite.addTest(TestDatabaseSetup('test_list_tables'))
+    suite.addTest(TestDatabaseSetup('test_get_session_error'))
+    suite.addTest(TestDatabaseSetup('test_creating_db_tables_error'))
+
     suite.addTest(TestPlantTable('test_columns'))
     suite.addTest(TestPlantTable('test_column_types'))
     suite.addTest(TestPlantTable('test_plant_data'))
@@ -598,6 +605,7 @@ def suite():
     suite.addTest(TestAppUserTable('test_column_types'))
     suite.addTest(TestAppUserTable('test_user_data'))
     suite.addTest(TestGetEntries('test_get_entries_success'))
+    suite.addTest(TestGetEntries('test_get_entries_no_entries'))
 
     # add more tests as needed
 
