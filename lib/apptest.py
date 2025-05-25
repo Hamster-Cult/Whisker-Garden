@@ -598,6 +598,7 @@ def suite():
     suite.addTest(TestAppUserTable('test_column_types'))
     suite.addTest(TestAppUserTable('test_user_data'))
     suite.addTest(TestGetEntries('test_get_entries_success'))
+
     # add more tests as needed
 
     return suite
