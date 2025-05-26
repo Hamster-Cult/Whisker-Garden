@@ -92,6 +92,10 @@ class TestDatabaseSetup(BaseTestCase):
             for table in expected_tables:
                 self.assertIn(table, tables)
 
+            for table in expected_tables:
+                if table not in expected_tables:
+                    self.fail(f"Unexpected column found: {table}")
+
 class TestPlantTable(BaseTestCase):
     # so when we need more setup for a specific test class we will call the original setUp method and then add specific setup
     def setUp(self):
@@ -439,6 +443,25 @@ class TestGetEntries(BaseTestCase):
         result = lib.app.get_entries(page_number=1, session=self.session)
         self.assertEqual(len(result), 0, "Expected no entries but found some")
 
+class TestEXPGrowth(BaseTestCase):
+    def test_exp_growth(self):
+        """Test the experience growth function"""
+
+        pass
+        # okay so the plant has no exp in its database and icl i dont really understand how it works ill do this later
+
+class TestLevelUpAcount(BaseTestCase):
+    def test_level_up_account(self):
+        """Test the level up account function"""
+
+        # create a user with initial level and exp
+        user = AppUser(garden_slot=1, username="test_user", level=1, exp=0, spendable_exp=0)
+        self.session.add(user)
+        self.session.commit()
+
+        # gain enough exp to level up
+        user.exp = 100
+
 @patch("lib.app.Session")
 class TestErrorHandlingDatabase(BaseTestCase):
     def test_get_session_error(self, mock_session):
@@ -503,18 +526,20 @@ class TestErrorHandlingPlant(BaseTestCase):
         mock_session.return_value.__enter__.return_value.exec.return_value.all.return_value = []
 
         with self.assertRaises(HTTPException) as context:
-            lib.app.get_plant_asset()
+            lib.app.get_plant_info()
 
         self.assertEqual(context.exception.status_code, 404)
+        logger.debug(context.exception.status_code)
         self.assertIn("Error 404: Plants not found", context.exception.detail)
 
     def test_get_plant_asset_db_error(self, mock_session):
         mock_session.return_value.__enter__.return_value.exec.side_effect = SQLAlchemyError("Database error")
 
         with self.assertRaises(HTTPException) as context:
-            lib.app.get_plant_asset()
+            lib.app.get_plant_info()
 
         self.assertEqual(context.exception.status_code, 500)
+        logger.debug(context.exception.status_code)
         self.assertIn("Error retrieving plant assets: ", context.exception.detail)
 
     def test_garden_not_found(self, mock_session):
@@ -524,6 +549,7 @@ class TestErrorHandlingPlant(BaseTestCase):
             lib.app.get_plant_details()
 
         self.assertEqual(context.exception.status_code, 404)
+        logger.debug(context.exception.status_code)
         self.assertIn("Error 404: Garden not found", context.exception.detail)
 
     def test_get_plant_details_fail(self, mock_session):
@@ -533,6 +559,7 @@ class TestErrorHandlingPlant(BaseTestCase):
             lib.app.get_plant_details()
 
         self.assertEqual(context.exception.status_code, 500)
+        logger.debug(context.exception.status_code)
         self.assertIn("Error retrieving garden progress: ", context.exception.detail)
 
     def test_buy_plant_error(self, mock_session):
@@ -544,6 +571,7 @@ class TestErrorHandlingPlant(BaseTestCase):
             list(lib.app.buy_plant(dummy_plant, mock_session))
 
         self.assertEqual(context.exception.status_code, 500)
+        logger.debug(context.exception.status_code)
         self.assertIn("Error buying plant: ", context.exception.detail)
 
     def test_water_plant_error(self, mock_session):
@@ -562,6 +590,7 @@ class TestErrorHandlingPlant(BaseTestCase):
             lib.app.water_plant(dummy_plant, None)
 
         self.assertEqual(context.exception.status_code, 500)
+        logger.debug(context.exception.status_code)
         self.assertIn("Error updating plant values: ", context.exception.detail)
 
     def test_get_garden_shelves_error(self, mock_session):
@@ -571,6 +600,7 @@ class TestErrorHandlingPlant(BaseTestCase):
             lib.app.get_garden_shelves(page_number=1, session=None)
 
         self.assertEqual(context.exception.status_code, 500)
+        logger.debug(context.exception.status_code)
         self.assertIn("Error retrieving garden shelves: ", context.exception.detail)
 
 # this is how you ditctate the order of the tests cause they run alphabetical by default for some reason
@@ -601,6 +631,15 @@ def suite():
     suite.addTest(TestErrorHandlingDatabase('test_creating_garden_error'))
     suite.addTest(TestErrorHandlingDatabase('test_creating_user_error'))
     suite.addTest(TestErrorHandlingDatabase('test_creating_goals_error'))
+    suite.addTest(TestErrorHandlingPlant('test_get_plant_asset_no_plants'))
+    suite.addTest(TestErrorHandlingPlant('test_get_plant_asset_db_error'))
+    suite.addTest(TestErrorHandlingPlant('test_garden_not_found'))
+    suite.addTest(TestErrorHandlingPlant('test_get_plant_details_fail'))
+    suite.addTest(TestErrorHandlingPlant('test_buy_plant_error'))
+    suite.addTest(TestErrorHandlingPlant('test_water_plant_error'))
+    suite.addTest(TestErrorHandlingPlant('test_get_garden_shelves_error'))
+    suite.addTest(TestErrorHandlingPlant('test_get_plant_details_fail'))
+    suite.addTest(TestEXPGrowth('test_exp_growth'))
 
     # add more tests as needed
 
