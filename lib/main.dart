@@ -1,8 +1,6 @@
-import 'dart:convert';
-import 'dart:math';
 import 'package:http/http.dart';
 
-import './helper.dart';
+import './helper.dart'; // what's this for?
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // For date and time
@@ -386,30 +384,25 @@ class GardenShelfPage extends StatefulWidget {
 
 // has the information for the plants on the shelf
 class _GardenShelfPageState extends State<GardenShelfPage> {
-  // find out how to dynamically resize images cause dawg :standing:
-  List<Widget> shelves = [];
+  List<List<Widget>> shelves = [[], [], [], []];
   int _currentPage = 1;
   //make a page that prompts the user to make an entry if there are none
 
   void fillShelves() async {
     final List<dynamic> data = await getData('/garden/$_currentPage');
-    shelves = []; // clears the list for each refresh
-    List<ShelfPlant> plants = [];
+    shelves = [[], [], [], []]; // clears the list for each refresh
+    int plantID = 0;
 
-    // fetching and displaying the right plants but erm
-    // it's repating more fix that ty
-    for (var i = 1; i < 4; i++) {
-      for (var item in data) {
-        setState(() {
-        plants.add(
-          ShelfPlant(image: 'assets/plants/${item['plant_id']}/${item['maturity']}.png')
-        );
-      });
+    for (var shelf in shelves) {
+        for (var i = 1; i <= 3; i++) {
+          setState(() {
+            shelf.add(  
+              ShelfPlant(image: 'assets/plants/${data[plantID]['plant_id']}/${data[plantID]['maturity']}.png')
+                );
+              });
+          plantID ++;
+        }
       }
-    }
-    setState(() {
-      shelves.add(GardenShelf(plants: plants));
-    });
   }
 
   @override
@@ -417,23 +410,26 @@ class _GardenShelfPageState extends State<GardenShelfPage> {
     super.initState();
     fillShelves();
   }
-
+// only works on the shelf image and not on pkants fix that ty
+// backend issue fetches 16 pinstead of 12 fix ty
   void _onSwipeLeft() {setState(() {
       if (_currentPage < shelves.length) {
         _currentPage ++;
+        fillShelves();
         }
     })
   ;}
   void _onSwipeRight() {setState(() {
     if (_currentPage != 0) {
           _currentPage --;
+          fillShelves();
         }
       })
     ;}
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> displayShelf = shelves;
+    List<List<Widget>> displayShelf = shelves;
 
     return Scaffold(
       body: Center(
@@ -441,16 +437,37 @@ class _GardenShelfPageState extends State<GardenShelfPage> {
           children: [
             NavigationDashboard(),
             LevelBar(),
-            CustomButton(destination: PlantStore(), text: 'store'),
-            GestureDetector(
-              onHorizontalDragEnd: (details) {
-                  if (details.primaryVelocity! > 0) { // update which elemnts are shown
-                    _onSwipeRight();
-                  } else if (details.primaryVelocity! < 0) {
-                    _onSwipeLeft();
-                  }
-                },
-                child: Column(children: displayShelf,),
+            Expanded(
+              child: Stack(
+                children: [
+                  GestureDetector(
+                      onHorizontalDragEnd: (details) {
+                          if (details.primaryVelocity! > 0) {
+                            _onSwipeRight();
+                          } else if (details.primaryVelocity! < 0) {
+                            _onSwipeLeft();
+                          }
+                        },
+                        child: Container(
+                          height: MediaQuery.of(context).size.height * 0.85,
+                          padding: EdgeInsets.only(bottom: 0.5, top: 0.5),
+                          margin: EdgeInsets.only(left: 25),
+                          child: Image.asset('assets/shelf.png'),
+                        ),
+                    ),
+                 Column(
+                  children: [
+                    Row(children: displayShelf[0]),
+                    Row(children: displayShelf[1]),
+                    Row(children: displayShelf[2]),
+                    Row(children: displayShelf[3]),
+                  ],
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: CustomButton(destination: PlantStore(), text: 'store')),
+                ]
+              ),
             ),
           ],
         ),
@@ -482,10 +499,8 @@ class MoodLoggingPage extends StatelessWidget {
                         MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 3,)),
             );},
               child: Container(
-                color: Color.fromARGB(255, 255, 178, 182),
-                width: 70,
-                height: 70,
                 margin: EdgeInsets.all(20),
+                child: Image.asset('assets/emotions/3.png') // neutral
               ),
             ),
             Row(
@@ -497,7 +512,7 @@ class MoodLoggingPage extends StatelessWidget {
                   );},
                     child: Container(
                       margin: EdgeInsets.only(top: 20, bottom: 20, right: 230, left: 60),
-                      child: Image.asset('assets/emotions/2.png')
+                      child: Image.asset('assets/emotions/2.png') // good
                     ),
                   ),
                 GestureDetector(
@@ -506,9 +521,7 @@ class MoodLoggingPage extends StatelessWidget {
                         MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 4,)),
                   );},
                     child: Container(
-                      color: Color.fromARGB(255, 245, 191, 184),
-                      width: 70,
-                      height: 70,
+                      child: Image.asset('assets/emotions/4.png') // sad
                     ),
                   ),
               ],
@@ -522,7 +535,7 @@ class MoodLoggingPage extends StatelessWidget {
                   );},
                     child: Container(
                       margin: EdgeInsets.only(top: 100, bottom: 20, right: 200, left: 80),
-                      child: Image.asset('assets/emotions/1.png'),
+                      child: Image.asset('assets/emotions/1.png'), // estatic
                     ),
                   ),
                 GestureDetector(
@@ -531,10 +544,8 @@ class MoodLoggingPage extends StatelessWidget {
                         MaterialPageRoute(builder: (context) => WriteEntryPromptPage(mood: 5,)),
                   );},
                     child: Container(
-                      color: Color.fromARGB(255, 253, 184, 144),
-                      width: 70,
-                      height: 70,
                       margin: EdgeInsets.only(right: 10, top: 100),
+                      child: Image.asset('assets/emotions/5.png') // depressed
                     ),
                   ),
               ],
@@ -1285,31 +1296,10 @@ class ShelfPlant extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(left: 40, right: 40, bottom: 80, top: 80),
+      width: MediaQuery.of(context).size.width * 0.2,
+      height: MediaQuery.of(context).size.width * 0.3,
+      margin: EdgeInsets.all(20),
       child: Image.asset(image),
-    );
-  }
-}
-
-class GardenShelf extends StatelessWidget {
-  // limit it to 4 plants per row
-  List<ShelfPlant> plants = []; // make this work lmao
-  GardenShelf ({super.key, required this.plants});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Image.asset('assets/shelf.png'),
-        Column(
-          // iterate through plants and make rows based on that
-          children: [
-            Row(
-            children: plants,
-            ),
-          ],
-        ),
-      ],
     );
   }
 }
@@ -1564,13 +1554,14 @@ class _PlantStoreState extends State<PlantStore> {
           GestureDetector(
             onTap: () {
               // add a popup confirmation
+              print('being');
               Map updateUser =
               {
-              'user_id': userData[0][0]['user_id'],
-              'garden_slot': userData[0][0]['garden_slot'],
-              'username': userData[0][0]['username'],
-              'level': userData[0][0]['level'],
-              'exp': userData[0][0]['exp'],
+              'user_id': userData[0]['user_id'],
+              'garden_slot': userData[0]['garden_slot'],
+              'username': userData[0]['username'],
+              'level': userData[0]['level'],
+              'exp': userData[0]['exp'],
               'spendable_exp': int.parse(userData[0][0]['spendable_exp']) - price
               };
 
@@ -1583,6 +1574,7 @@ class _PlantStoreState extends State<PlantStore> {
 
               sendData('/water', updateUser);
               sendData('/buy', updatePlants);
+              print('sent or shiulldve');
             },
             child: Container(
                 margin: EdgeInsets.all(10),
