@@ -15,7 +15,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from fastapi import HTTPException
-from sqlmodel import create_engine, SQLModel
+from sqlmodel import create_engine, SQLModel, Session, select
 from sqlalchemy import text, inspect
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
@@ -43,16 +43,13 @@ class BaseTestCase(unittest.TestCase):
     # setUp and tearDown needing different cases to the usual is so annoying
     def setUp(self):
         """Set up an in-memory SQLite database for tests"""
-        self.engine = create_engine("sqlite:///:memory:", echo=False,connect_args={"check_same_thread": False})
-
-        # patch the app engine to use our test engine
+        self.engine = create_engine("sqlite:///:memory:", echo=False)
         self.engine_patcher = patch('lib.app.engine', self.engine)
-        self.mock_engine = self.engine_patcher.start()
+        self.engine_patcher.start()
 
-        # create tables and session
         SQLModel.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine)
-        self.session = Session()
+
+        self.session = Session(self.engine)
 
     # tearDown is run after each test case
     # tearDown is used to clean up after each test case
@@ -60,8 +57,8 @@ class BaseTestCase(unittest.TestCase):
         """Clean up after each test"""
         self.session.rollback()
         self.session.close()
-        self.engine.dispose()
         self.engine_patcher.stop()
+        self.engine.dispose()
 
 # this will be the formula for all the tests
 # connects to the database and says hello world
@@ -502,7 +499,7 @@ class TestEntries(BaseTestCase):
         self.session.commit()
         logger.debug(f"Created entry: {self.valid_entry.entry} with rating {self.valid_entry.rating}")
 
-        db_entry = self.session.query(Entries).filter_by(entry="Valid entry").first()
+        db_entry = self.session.exec(select(Entries).where(Entries.entry == "Valid entry")).first()
 
         self.assertIsNotNone(db_entry)
         self.assertEqual(db_entry.rating, 3)
@@ -512,7 +509,7 @@ class TestEntries(BaseTestCase):
         self.session.commit()
         logger.debug(f"Created entry: {self.valid_entry_lower_limit.entry} with rating {self.valid_entry_lower_limit.rating}")
 
-        db_entry = self.session.query(Entries).filter_by(entry="Lower limit entry").first()
+        db_entry = self.session.exec(select(Entries).where(Entries.entry == self.valid_entry_lower_limit.entry)).first()
 
         self.assertIsNotNone(db_entry)
         self.assertEqual(db_entry.rating, 1)
@@ -522,7 +519,7 @@ class TestEntries(BaseTestCase):
         self.session.commit()
         logger.debug(f"Created entry: {self.valid_entry_upper_limit.entry} with rating {self.valid_entry_upper_limit.rating}")
 
-        db_entry = self.session.query(Entries).filter_by(entry="Upper limit entry").first()
+        db_entry = self.session.exec(select(Entries).where(Entries.entry == self.valid_entry_upper_limit.entry)).first()
 
         self.assertIsNotNone(db_entry)
         self.assertEqual(db_entry.rating, 5)
@@ -559,6 +556,15 @@ class TestEntries(BaseTestCase):
 class TestAssignPlant(BaseTestCase):
     def setUp(self):
         super().setUp()
+
+        plant = Plant(
+        plant_id=1,
+        plant_type="TestType",
+        unlocked=True,
+        price=10)
+        self.session.add(plant)
+        self.session.commit()
+
         self.valid_plant = Garden(
             garden_slot=1,
             plant_id=1,
@@ -570,7 +576,7 @@ class TestAssignPlant(BaseTestCase):
         )
 
         self.invalid_plant_id = Garden(
-            garden_slot=1,
+            garden_slot=2,
             plant_id=999,
             name="Invalid Garden Plant",
             archived=False,
@@ -585,7 +591,7 @@ class TestAssignPlant(BaseTestCase):
         except HTTPException:
             self.fail("assign_plant raised HTTPException unexpectedly!")
 
-        db_plant = self.session.query(Garden).filter_by(garden_slot=1).first()
+        db_plant = self.session.exec(select(Garden).where(Garden.garden_slot == 1)).first()
         self.assertIsNotNone(db_plant)
         self.assertEqual(db_plant.name, "Valid Garden Plant")
 
