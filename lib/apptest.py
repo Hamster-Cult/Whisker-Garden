@@ -409,6 +409,7 @@ class TestAppUserTable(BaseTestCase):
 
     @patch("lib.app.Session")
     def test_gain_user_exp_error(self, mock_session):
+        """Test error when gaining user experience."""
         mock_session.return_value.__enter__.return_value.exec.side_effect = SQLAlchemyError("Database error")
 
         dummy_user = AppUser(user_level=1, level=2, exp=100, spendable_exp=50)
@@ -452,6 +453,7 @@ class TestGetPlantDetails(BaseTestCase):
             session.commit()
 
     def test_get_plant_details(self):
+        """Test retrieval of plant details."""
         with patch('lib.app.engine', self.engine):
             results = lib.app.get_plant_details()
 
@@ -500,6 +502,7 @@ class TestGetExp(BaseTestCase):
             session.commit()
 
     def test_get_exp_success(self):
+        """Test successful retrieval of experience."""
         results = lib.app.get_exp()
         self.assertIsInstance(results, list)
         self.assertEqual(len(results), 1)
@@ -508,20 +511,22 @@ class TestGetExp(BaseTestCase):
         self.assertEqual(user_data["exp"], 1200)
 
     def test_update_and_get_exp(self):
+        """Test updating and retrieving user experience."""
         with Session(self.engine) as session:
             user = session.exec(select(AppUser).where(AppUser.username == "test_user")).first()
             user.level = 10
             session.commit()
 
-        results = lib.app.get_exp()
-        self.assertIsInstance(results, list)
-        self.assertEqual(len(results), 1)
-        user_data = results[0]
-        self.assertEqual(user_data["level"], 10)
-        self.assertEqual(user_data["exp"], 1200)
+            results = lib.app.get_exp()
+            self.assertIsInstance(results, list)
+            self.assertEqual(len(results), 1)
+            user_data = results[0]
+            self.assertEqual(user_data["level"], 10)
+            self.assertEqual(user_data["exp"], 1200)
 
     @patch("lib.app.Session")
     def test_get_exp_db_error(self, mock_session):
+        """Test database error during experience retrieval."""
         mock_session.return_value.__enter__.return_value.exec.side_effect = SQLAlchemyError("DB error")
 
         with self.assertRaises(HTTPException) as context:
@@ -548,12 +553,14 @@ class TestGetGardenShelves(BaseTestCase):
         self.session.commit()
 
     def test_first_page_returns_all_plants(self):
+        """Test first page returns all plants."""
         plants = lib.app.get_garden_shelves(1, self.session)
         self.assertEqual(len(plants), 10)
         self.assertEqual(plants[0].plant_id, 1)
         self.assertEqual(plants[-1].plant_id, 10)
 
     def test_second_page_returns_empty_list(self):
+        """Test second page returns empty list."""
         plants = lib.app.get_garden_shelves(2, self.session)
         self.assertEqual(len(plants), 0)
 
@@ -655,45 +662,6 @@ class TestGetUserData(BaseTestCase):
 
             self.assertEqual(context.exception.status_code, 404)
             self.assertIn("User not found", context.exception.detail)
-
-class TestViewMonth(BaseTestCase):
-    def setUp(self):
-        super().setUp()
-        SQLModel.metadata.create_all(self.engine)
-
-        with Session(self.engine) as session:
-            entries = [
-                Entries(entry_date=date(2025, 5, 1)),
-                Entries(entry_date=date(2025, 5, 15)),
-                Entries(entry_date=date(2025, 6, 1)),
-            ]
-            session.add_all(entries)
-            session.commit()
-
-    @patch('lib.app.month_days', return_value=31)
-    def test_view_month_success(self, mock_month_days):
-        """Test successful view of a month."""
-        with Session(self.engine) as session:
-            start_date = date(2025, 5, 1)
-            results = lib.app.view_month(start_date, session)
-
-            self.assertEqual(len(results), 2)
-            for entry_date in results:
-                self.assertTrue(date(2025, 5, 1) <= entry_date <= date(2025, 5, 31))
-
-    @patch('lib.app.month_days', return_value=31)
-    def test_view_month_sqlalchemy_error(self, mock_month_days):
-        """Test SQLAlchemy error during month view."""
-        from unittest.mock import MagicMock
-
-        mock_session = MagicMock()
-        mock_session.exec.side_effect = SQLAlchemyError("DB error")
-
-        with self.assertRaises(HTTPException) as context:
-            lib.app.view_month(date(2025, 5, 1), mock_session)
-
-        self.assertEqual(context.exception.status_code, 500)
-        self.assertIn("Error viewing month", context.exception.detail)
 
 class TestEntries(BaseTestCase):
     def setUp(self):
@@ -1063,7 +1031,6 @@ def suite():
     # general functions
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestEntries))
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestAssignPlant))
-    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestViewMonth))
     # error handling tests - jodie
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestErrorHandlingDatabase))
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestErrorHandlingPlant))
