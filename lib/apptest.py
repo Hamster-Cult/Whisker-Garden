@@ -13,16 +13,16 @@
 
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from fastapi import HTTPException
 from sqlmodel import create_engine, SQLModel
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text, inspect
 from sqlalchemy.orm import sessionmaker
-# import asyncio # for async functions
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.exc import NoResultFound
 from lib.database import *
-# from lib.app import *
 import lib.app
+
 
 # this is all for logging so i dont comment print statements
 import logging
@@ -43,7 +43,7 @@ class BaseTestCase(unittest.TestCase):
     # setUp and tearDown needing different cases to the usual is so annoying
     def setUp(self):
         """Set up an in-memory SQLite database for tests"""
-        self.engine = create_engine("sqlite:///:memory:", echo=False)
+        self.engine = create_engine("sqlite:///:memory:", echo=False,connect_args={"check_same_thread": False})
 
         # patch the app engine to use our test engine
         self.engine_patcher = patch('lib.app.engine', self.engine)
@@ -444,29 +444,159 @@ class TestGetEntries(BaseTestCase):
         self.assertEqual(len(result), 0, "Expected no entries but found some")
 
 class TestEntries(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        # creating some entries for testing
 
-    def test_create_entry_valid(self):
-        entry = Entries(
+        self.valid_entry = Entries(
             entry="Valid entry",
             entry_date=date(2024, 10, 1),
             entry_time=time(12, 0, 0),
             rating=3
         )
-        lib.app.create_entry(entry, self.session)
 
-        db_entry = self.session.query(Entries).filter_by(entry="Valid entry").first()
-        self.assertIsNotNone(db_entry)
-        self.assertEqual(db_entry.rating, 3)
+        self.valid_entry_lower_limit = Entries(
+            entry="Lower limit entry",
+            entry_date=date(2024, 9, 1),
+            entry_time=time(4, 6, 0),
+            rating=1
+        )
 
-    def test_create_entry_invalid_rating(self):
-        entry = Entries(
+        self.valid_entry_upper_limit = Entries(
+            entry="Upper limit entry",
+            entry_date=date(2025, 2, 1),
+            entry_time=time(17, 2, 0),
+            rating=5
+        )
+
+        self.invalid_entry_text = Entries(
             entry="Invalid rating",
             entry_date=date(2024, 10, 1),
             entry_time=time(12, 0, 0),
-            rating=6  # Assuming 6 is invalid
+            rating="hello"
         )
-        with self.assertRaises(HTTPException):
-            lib.app.create_entry(entry, self.session)
+
+        self.invalid_entry_lower_limit = Entries(
+            entry="Invalid lower limit rating",
+            entry_date=date(2024, 10, 1),
+            entry_time=time(12, 0, 0),
+            rating=0
+        )
+
+        self.invalid_entry_upper_limit = Entries(
+            entry="Invalid upper limit rating",
+            entry_date=date(2024, 10, 1),
+            entry_time=time(12, 0, 0),
+            rating=6
+        )
+
+        self.invalid_entry_null = Entries(
+            entry="Invalid null rating",
+            entry_date=date(2024, 10, 1),
+            entry_time=time(12, 0, 0),
+            rating=None
+        )
+
+    def test_create_entry_valid_rating(self):
+        self.session.add(self.valid_entry)
+        self.session.commit()
+        logger.debug(f"Created entry: {self.valid_entry.entry} with rating {self.valid_entry.rating}")
+
+        db_entry = self.session.query(Entries).filter_by(entry="Valid entry").first()
+
+        self.assertIsNotNone(db_entry)
+        self.assertEqual(db_entry.rating, 3)
+
+    def test_create_entry_valid_rating_lower_limit(self):
+        self.session.add(self.valid_entry_lower_limit)
+        self.session.commit()
+        logger.debug(f"Created entry: {self.valid_entry_lower_limit.entry} with rating {self.valid_entry_lower_limit.rating}")
+
+        db_entry = self.session.query(Entries).filter_by(entry="Lower limit entry").first()
+
+        self.assertIsNotNone(db_entry)
+        self.assertEqual(db_entry.rating, 1)
+
+    def test_create_entry_valid_rating_upper_limit(self):
+        self.session.add(self.valid_entry_upper_limit)
+        self.session.commit()
+        logger.debug(f"Created entry: {self.valid_entry_upper_limit.entry} with rating {self.valid_entry_upper_limit.rating}")
+
+        db_entry = self.session.query(Entries).filter_by(entry="Upper limit entry").first()
+
+        self.assertIsNotNone(db_entry)
+        self.assertEqual(db_entry.rating, 5)
+
+    def test_create_entry_invalid_rating_text(self):
+
+        with self.assertRaises(HTTPException) as context:
+            lib.app.create_entry(self.invalid_entry_text, self.session)
+
+        exception = context.exception
+        logger.debug(f"HTTPException raised with status code {exception.status_code} and detail: {exception.detail}")
+
+    def test_create_entry_invalid_lower_limit_rating(self):
+        with self.assertRaises(HTTPException) as context:
+            lib.app.create_entry(self.invalid_entry_lower_limit, self.session)
+
+        exception = context.exception
+        logger.debug(f"HTTPException raised with status code {exception.status_code} and detail: {exception.detail}")
+
+    def test_create_entry_invalid_upper_limit_rating(self):
+        with self.assertRaises(HTTPException) as context:
+            lib.app.create_entry(self.invalid_entry_upper_limit, self.session)
+
+        exception = context.exception
+        logger.debug(f"HTTPException raised with status code {exception.status_code} and detail: {exception.detail}")
+
+    def test_create_entry_invalid_null_rating(self):
+        with self.assertRaises(HTTPException) as context:
+            lib.app.create_entry(self.invalid_entry_null, self.session)
+
+        exception = context.exception
+        logger.debug(f"HTTPException raised with status code {exception.status_code} and detail: {exception.detail}")
+
+class TestAssignPlant(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.valid_plant = Garden(
+            garden_slot=1,
+            plant_id=1,
+            name="Valid Garden Plant",
+            archived=False,
+            maturity=10,
+            plant_exp=100,
+            last_watered=date.today()
+        )
+
+        self.invalid_plant_id = Garden(
+            garden_slot=1,
+            plant_id=999,
+            name="Invalid Garden Plant",
+            archived=False,
+            maturity=10,
+            plant_exp=100,
+            last_watered=date.today()
+        )
+
+    def test_assign_plant_valid(self):
+        try:
+            lib.app.assign_plant(self.valid_plant, self.session)
+        except HTTPException:
+            self.fail("assign_plant raised HTTPException unexpectedly!")
+
+        db_plant = self.session.query(Garden).filter_by(garden_slot=1).first()
+        self.assertIsNotNone(db_plant)
+        self.assertEqual(db_plant.name, "Valid Garden Plant")
+
+    def test_assign_plant_invalid_plant_id(self):
+        with self.assertRaises(HTTPException) as context:
+            lib.app.assign_plant(self.invalid_plant_id, self.session)
+
+        exception = context.exception
+        logger.debug(f"HTTPException raised with status code {exception.status_code} and detail: {exception.detail}")
+        self.assertEqual(exception.status_code, 404)
+        self.assertIn("Plant not found", exception.detail)
 
 @patch("lib.app.Session")
 class TestErrorHandlingDatabase(BaseTestCase):
@@ -569,16 +699,18 @@ class TestErrorHandlingPlant(BaseTestCase):
         self.assertIn("Error retrieving garden progress: ", context.exception.detail)
 
     def test_buy_plant_error(self, mock_session):
-        mock_session.return_value.__enter__.return_value.add.side_effect = SQLAlchemyError("Database error")
+        dummy_plant = lib.app.Plant(plant_id=999)
+        logger.debug(f"Testing buy_plant with plant_id: {dummy_plant.plant_id}")
 
-        dummy_plant = lib.app.Plant()
+        # forces session and its exec().one() to raise NoResultFound as it was only doing it sometimes
+        mock_session = MagicMock()
+        mock_session.exec.return_value.one.side_effect = NoResultFound()
 
-        with self.assertRaises(HTTPException) as context:
-            list(lib.app.buy_plant(dummy_plant, mock_session))
-
-        self.assertEqual(context.exception.status_code, 500)
-        logger.debug(context.exception.status_code)
-        self.assertIn("Error buying plant: ", context.exception.detail)
+        with self.assertRaises(HTTPException) as cm:
+            lib.app.buy_plant(dummy_plant, mock_session)
+        logger.debug(f"HTTPException caught with status: {cm.exception.status_code} and detail: {cm.exception.detail}")
+        self.assertEqual(cm.exception.status_code, 500)
+        self.assertIn("Error buying plant", cm.exception.detail)
 
     def test_water_plant_error(self, mock_session):
         mock_session.return_value.__enter__.return_value.exec.side_effect = SQLAlchemyError("Database error")
@@ -632,43 +764,17 @@ class TestErrorHandlingEntries(BaseTestCase):
 def suite():
     """Define the order of test execution"""
     suite = unittest.TestSuite()
-    # suite.addTest(TestDatabaseSetup('test_hello_world'))
-    # suite.addTest(TestDatabaseSetup('test_list_tables'))
-    # suite.addTest(TestPlantTable('test_columns'))
-    # suite.addTest(TestPlantTable('test_column_types'))
-    # suite.addTest(TestPlantTable('test_plant_data'))
-    # suite.addTest(TestPlantTable('test_create_plant'))
-    # suite.addTest(TestPlantTable('test_delete_plant'))
-    # suite.addTest(TestGardenTable('test_columns'))
-    # suite.addTest(TestGardenTable('test_garden_data'))
-    # suite.addTest(TestGardenTable('test_column_types'))
-    # suite.addTest(TestGoalsTable('test_columns'))
-    # suite.addTest(TestGoalsTable('test_goals_data'))
-    # suite.addTest(TestGoalsTable('test_column_types'))
-    # suite.addTest(TestAppUserTable('test_columns'))
-    # suite.addTest(TestAppUserTable('test_column_types'))
-    # suite.addTest(TestAppUserTable('test_user_data'))
-    # suite.addTest(TestGetEntries('test_get_entries_success'))
-    # suite.addTest(TestGetEntries('test_get_entries_no_entries'))
-    # suite.addTest(TestErrorHandlingDatabase('test_get_session_error'))
-    # suite.addTest(TestErrorHandlingDatabase('test_creating_db_tables_error'))
-    # suite.addTest(TestErrorHandlingDatabase('test_creating_plants_error'))
-    # suite.addTest(TestErrorHandlingDatabase('test_creating_garden_error'))
-    # suite.addTest(TestErrorHandlingDatabase('test_creating_user_error'))
-    # suite.addTest(TestErrorHandlingDatabase('test_creating_goals_error'))
-    # suite.addTest(TestErrorHandlingPlant('test_get_plant_asset_no_plants'))
-    # suite.addTest(TestErrorHandlingPlant('test_get_plant_asset_db_error'))
-    # suite.addTest(TestErrorHandlingPlant('test_garden_not_found'))
-    # suite.addTest(TestErrorHandlingPlant('test_get_plant_details_fail'))
-    # suite.addTest(TestErrorHandlingPlant('test_buy_plant_error'))
-    # suite.addTest(TestErrorHandlingPlant('test_water_plant_error'))
-    # suite.addTest(TestErrorHandlingPlant('test_get_garden_shelves_error'))
-    # suite.addTest(TestErrorHandlingPlant('test_get_plant_details_fail'))
-    # suite.addTest(TestErrorHandlingEntries('test_get_entries_sqlalchemy_error'))
-    # suite.addTest(TestErrorHandlingEntries('test_get_entries_success'))
-    # suite.addTest(TestWaterPlant('test_water_plant_updates_exp_and_maturity'))
-    suite.addTest(TestEntries('test_create_entry_valid'))
-    suite.addTest(TestEntries('test_create_entry_invalid_rating'))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestDatabaseSetup))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestPlantTable))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGardenTable))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGoalsTable))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestAppUserTable))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGetEntries))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestErrorHandlingDatabase))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestErrorHandlingPlant))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestErrorHandlingEntries))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestEntries))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestAssignPlant))
 
 
     # add more tests as needed
