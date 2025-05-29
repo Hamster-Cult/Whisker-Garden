@@ -22,7 +22,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from lib.database import *
 import lib.app
-
+from fastapi.testclient import TestClient
 
 # this is all for logging so i dont comment print statements
 import logging
@@ -413,6 +413,46 @@ class TestAppUserTable(BaseTestCase):
         self.assertEqual(context.exception.status_code, 500)
         self.assertIn("Error updating user data: ", context.exception.detail)
 
+class TestGetPlantDetails(BaseTestCase):
+    def setUp(self):
+        super().setUp()
+
+        # create a in memory database with check_same_thread=False cause this was causing issues for some wonderful reason
+        self.engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+
+        # creates table cause it was not being created in the setUp method for some wonderful reason
+        SQLModel.metadata.create_all(self.engine)
+
+        with Session(self.engine) as session:
+            plant1 = Garden(
+                garden_slot=1,
+                plant_id=1,
+                name="Rose",
+                archived=False,
+                maturity=5,
+                plant_exp=50,
+                last_watered=date.today()
+            )
+            plant2 = Garden(
+                garden_slot=2,
+                plant_id=2,
+                name="Tulip",
+                archived=True,
+                maturity=3,
+                plant_exp=30,
+                last_watered=date.today()
+            )
+            session.add_all([plant1, plant2])
+            session.commit()
+
+    def test_get_plant_details(self):
+        with patch('lib.app.engine', self.engine):
+            results = lib.app.get_plant_details()
+
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0]['plant_id'], 1)
+            self.assertEqual(results[0]['archived'], False)
+
 class TestGetEntries(BaseTestCase):
     from datetime import date, time
     def test_get_entries_success(self):
@@ -770,17 +810,22 @@ class TestErrorHandlingEntries(BaseTestCase):
 def suite():
     """Define the order of test execution"""
     suite = unittest.TestSuite()
+    # inital setup
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestDatabaseSetup))
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestPlantTable))
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGardenTable))
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGoalsTable))
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestAppUserTable))
+    # get functions
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGetEntries))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestGetPlantDetails))
+    # general functions
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestEntries))
+    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestAssignPlant))
+    # error handling tests - jodie
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestErrorHandlingDatabase))
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestErrorHandlingPlant))
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestErrorHandlingEntries))
-    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestEntries))
-    suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestAssignPlant))
 
 
     # add more tests as needed
