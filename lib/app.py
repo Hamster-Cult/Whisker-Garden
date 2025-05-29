@@ -132,6 +132,9 @@ def create_entry(entry: Entries, session: SessionDep):
 
 @app.post("/assign/")
 def assign_plant(plant: Garden, session: SessionDep):
+    db_plant = session.exec(select(Plant).where(Plant.plant_id == plant.plant_id)).first()
+    if not db_plant:
+        raise HTTPException(status_code=404, detail="Plant not found")
     try:
         with Session(engine) as session:
             session.add(plant)
@@ -139,7 +142,6 @@ def assign_plant(plant: Garden, session: SessionDep):
     except SQLAlchemyError as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error buying plant: {e}")
-            
 
 @app.post("/buy") #doesn't this need to be an update?
 def buy_plant(plant: Plant, session: SessionDep): # Updates plants when bought from the store
@@ -148,7 +150,6 @@ def buy_plant(plant: Plant, session: SessionDep): # Updates plants when bought f
             dbPlant = session.exec(
                 select(Plant)
                 .where(Plant.plant_id == plant.plant_id)).one()
-
             dbPlant.plant_type = plant.plant_type
             dbPlant.unlocked = True
             session.add(dbPlant)
