@@ -8,6 +8,7 @@
 # pip install fastapi "fastapi[standard]" "uvicorn[standard]" sqlmodel psycopg2 sqlalchemy
 # deactivate
 # venv\Scripts\activate
+
 # python -m lib.apptest
 # python -m lib.apptest --debug
 
@@ -150,7 +151,7 @@ class TestPlantTable(BaseTestCase):
                 self.assertIn(plant, plant_types)
 
             # Check we have the expected number of plants (10 based on your create_plants function)
-        self.assertEqual(len(rows), 10)#
+        self.assertEqual(len(rows), 10)
 
     def test_create_plant(self):
         # this also tests reading a plant
@@ -306,15 +307,6 @@ class TestGoalsTable(BaseTestCase):
                 if column not in expected_columns:
                     self.fail(f"Unexpected column found: {column}")
 
-    def test_goals_data(self):
-        """Checking if the goals table has the correct data"""
-        with self.engine.connect() as conn:
-            result = conn.execute(text("SELECT * FROM goals"))
-            rows = result.fetchall()
-
-        logger.debug(f"Rows in goals table: {rows}")
-        self.assertTrue(len(rows) > 0, "No rows found in goals table")
-
     def test_column_types(self):
         """Test the data types of columns in the Goals table"""
         # inspector to check specific column types
@@ -346,6 +338,15 @@ class TestGoalsTable(BaseTestCase):
 
         self.assertIn('exp_increase', column_types)
         self.assertEqual(column_types['exp_increase'], 'INTEGER')
+
+    def test_goals_data(self):
+        """Checking if the goals table has the correct data"""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("SELECT * FROM goals"))
+            rows = result.fetchall()
+
+        logger.debug(f"Rows in goals table: {rows}")
+        self.assertTrue(len(rows) > 0, "No rows found in goals table")
 
 class TestAppUserTable(BaseTestCase):
     def setUp(self):
