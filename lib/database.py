@@ -4,14 +4,16 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select, Column
 from datetime import date, time
+from sqlalchemy import CheckConstraint
 
 class AppUser(SQLModel, table=True):
   user_id: int | None = Field(default=None, primary_key=True)
   garden_slot: int = Field(foreign_key="garden.garden_slot", nullable=False)
   username: str = Field(max_length=20, nullable=False)
-  level: int = Field (nullable=False, min_length=0)
-  exp: int = Field (nullable=False, min_length=0)
-  spendable_exp: int = Field(nullable=False, min_length=0)
+  level: int = Field(nullable=False, ge=0)
+  exp: int = Field(nullable=False, ge=0)
+  spendable_exp: int = Field(nullable=False, ge=0)
+
 
 class Plant(SQLModel, table=True):
   plant_id: int | None = Field(default=None, primary_key=True)
@@ -44,3 +46,6 @@ class Entries(SQLModel, table=True):
   entry_date: date = Field(nullable=False)
   entry_time: time = Field(nullable=False)
   rating: int = Field(nullable=False, ge=1, le=5)
+
+  __table_args__ = (
+    CheckConstraint("rating >= 1 AND rating <= 5", name="rating_check"),)
