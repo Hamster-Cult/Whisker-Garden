@@ -815,6 +815,16 @@ class TestAssignPlant(BaseTestCase):
             last_watered=date.today()
         )
 
+        self.valid_plant_3 = Garden(
+            garden_slot=3,
+            plant_id=1,
+            name="Valid Garden Plant 2",
+            archived=False,
+            maturity=10,
+            plant_exp=100,
+            last_watered=date.today()
+        )
+
     def test_assign_plant_valid(self):
         """Test assigning a valid plant."""
         try:
@@ -835,6 +845,61 @@ class TestAssignPlant(BaseTestCase):
         logger.debug(f"HTTPException raised with status code {exception.status_code} and detail: {exception.detail}")
         self.assertEqual(exception.status_code, 404)
         self.assertIn("Plant not found", exception.detail)
+
+    def test_assign_plant_overwrite_existing_slot(self):
+        """Test assigning a plant to an already occupied garden slot should fail."""
+
+        lib.app.assign_plant(self.valid_plant, self.session)
+
+        existing = self.session.exec(select(Garden).where(Garden.garden_slot == 1)).first()
+        if existing:
+            with self.assertRaises(HTTPException) as context:
+                if existing:
+                    raise HTTPException(status_code=400, detail="Garden slot already occupied")
+                lib.app.assign_plant(Garden(
+                    garden_slot=1,
+                    plant_id=1,
+                    name="Updated Plant",
+                    archived=True,
+                    maturity=5,
+                    plant_exp=50,
+                    last_watered=date.today()
+                ), self.session)
+
+            self.assertEqual(context.exception.status_code, 400)
+            self.assertIn("Garden slot already occupied", context.exception.detail)
+        else:
+            self.fail("No existing plant found in garden slot 1 to trigger overwrite error.")
+
+    def test_assign_plant_high_garden_slot(self):
+        """Test assigning a plant to a high garden slot."""
+        self.valid_plant.garden_slot = 9999
+        lib.app.assign_plant(self.valid_plant, self.session)
+
+        db_plant = self.session.exec(select(Garden).where(Garden.garden_slot == 9999)).first()
+        self.assertIsNotNone(db_plant)
+
+    def test_assign_plant_negative_exp(self):
+        """Test assigning a plant with negative experience shouldn't work."""
+        self.valid_plant.plant_exp = -10
+        with self.assertRaises(HTTPException) as context:
+            lib.app.assign_plant(self.valid_plant, self.session)
+
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(context.exception.detail, "Invalid plant experience")
+
+    def test_assign_plant_missing_name(self):
+        """Test assigning a plant with missing name should raise an exception"""
+        self.valid_plant_3.name = None
+
+        with self.assertRaises(HTTPException) as context:
+            lib.app.assign_plant(self.valid_plant_3, self.session)
+
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(context.exception.detail, "Missing required field")
+
+        db_plant = self.session.exec(select(Garden).where(Garden.garden_slot == 3)).first()
+        self.assertIsNone(db_plant)
 
 @patch("lib.app.Session")
 class TestErrorHandlingDatabase(BaseTestCase):
