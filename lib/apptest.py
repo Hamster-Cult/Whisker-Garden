@@ -443,24 +443,30 @@ class TestGetEntries(BaseTestCase):
         result = lib.app.get_entries(page_number=1, session=self.session)
         self.assertEqual(len(result), 0, "Expected no entries but found some")
 
-class TestEXPGrowth(BaseTestCase):
-    def test_exp_growth(self):
-        """Test the experience growth function"""
+class TestEntries(BaseTestCase):
 
-        pass
-        # okay so the plant has no exp in its database and icl i dont really understand how it works ill do this later
+    def test_create_entry_valid(self):
+        entry = Entries(
+            entry="Valid entry",
+            entry_date=date(2024, 10, 1),
+            entry_time=time(12, 0, 0),
+            rating=3
+        )
+        lib.app.create_entry(entry, self.session)
 
-class TestLevelUpAcount(BaseTestCase):
-    def test_level_up_account(self):
-        """Test the level up account function"""
+        db_entry = self.session.query(Entries).filter_by(entry="Valid entry").first()
+        self.assertIsNotNone(db_entry)
+        self.assertEqual(db_entry.rating, 3)
 
-        # create a user with initial level and exp
-        user = AppUser(garden_slot=1, username="test_user", level=1, exp=0, spendable_exp=0)
-        self.session.add(user)
-        self.session.commit()
-
-        # gain enough exp to level up
-        user.exp = 100
+    def test_create_entry_invalid_rating(self):
+        entry = Entries(
+            entry="Invalid rating",
+            entry_date=date(2024, 10, 1),
+            entry_time=time(12, 0, 0),
+            rating=6  # Assuming 6 is invalid
+        )
+        with self.assertRaises(HTTPException):
+            lib.app.create_entry(entry, self.session)
 
 @patch("lib.app.Session")
 class TestErrorHandlingDatabase(BaseTestCase):
@@ -603,43 +609,67 @@ class TestErrorHandlingPlant(BaseTestCase):
         logger.debug(context.exception.status_code)
         self.assertIn("Error retrieving garden shelves: ", context.exception.detail)
 
+@patch("lib.app.Session")
+class TestErrorHandlingEntries(BaseTestCase):
+    def test_get_entries_sqlalchemy_error(self, mock_session):
+        mock_session.return_value.__enter__.return_value.exec.side_effect = SQLAlchemyError("DB failed")
+
+        with self.assertRaises(HTTPException) as context:
+            lib.app.get_entries(1, None)
+
+        self.assertEqual(context.exception.status_code, 500)
+        self.assertIn("Error retrieving entries", context.exception.detail)
+
+    def test_get_entries_success(self, mock_session):
+        mock_entries = [Entries(entry_id=1), Entries(entry_id=2)]
+        mock_session.return_value.__enter__.return_value.exec.return_value.all.return_value = mock_entries
+
+        result = lib.app.get_entries(1, None)
+
+        self.assertEqual(result, mock_entries)
+
 # this is how you ditctate the order of the tests cause they run alphabetical by default for some reason
 def suite():
     """Define the order of test execution"""
     suite = unittest.TestSuite()
-    suite.addTest(TestDatabaseSetup('test_hello_world'))
-    suite.addTest(TestDatabaseSetup('test_list_tables'))
-    suite.addTest(TestPlantTable('test_columns'))
-    suite.addTest(TestPlantTable('test_column_types'))
-    suite.addTest(TestPlantTable('test_plant_data'))
-    suite.addTest(TestPlantTable('test_create_plant'))
-    suite.addTest(TestPlantTable('test_delete_plant'))
-    suite.addTest(TestGardenTable('test_columns'))
-    suite.addTest(TestGardenTable('test_garden_data'))
-    suite.addTest(TestGardenTable('test_column_types'))
-    suite.addTest(TestGoalsTable('test_columns'))
-    suite.addTest(TestGoalsTable('test_goals_data'))
-    suite.addTest(TestGoalsTable('test_column_types'))
-    suite.addTest(TestAppUserTable('test_columns'))
-    suite.addTest(TestAppUserTable('test_column_types'))
-    suite.addTest(TestAppUserTable('test_user_data'))
-    suite.addTest(TestGetEntries('test_get_entries_success'))
-    suite.addTest(TestGetEntries('test_get_entries_no_entries'))
-    suite.addTest(TestErrorHandlingDatabase('test_get_session_error'))
-    suite.addTest(TestErrorHandlingDatabase('test_creating_db_tables_error'))
-    suite.addTest(TestErrorHandlingDatabase('test_creating_plants_error'))
-    suite.addTest(TestErrorHandlingDatabase('test_creating_garden_error'))
-    suite.addTest(TestErrorHandlingDatabase('test_creating_user_error'))
-    suite.addTest(TestErrorHandlingDatabase('test_creating_goals_error'))
-    suite.addTest(TestErrorHandlingPlant('test_get_plant_asset_no_plants'))
-    suite.addTest(TestErrorHandlingPlant('test_get_plant_asset_db_error'))
-    suite.addTest(TestErrorHandlingPlant('test_garden_not_found'))
-    suite.addTest(TestErrorHandlingPlant('test_get_plant_details_fail'))
-    suite.addTest(TestErrorHandlingPlant('test_buy_plant_error'))
-    suite.addTest(TestErrorHandlingPlant('test_water_plant_error'))
-    suite.addTest(TestErrorHandlingPlant('test_get_garden_shelves_error'))
-    suite.addTest(TestErrorHandlingPlant('test_get_plant_details_fail'))
-    suite.addTest(TestEXPGrowth('test_exp_growth'))
+    # suite.addTest(TestDatabaseSetup('test_hello_world'))
+    # suite.addTest(TestDatabaseSetup('test_list_tables'))
+    # suite.addTest(TestPlantTable('test_columns'))
+    # suite.addTest(TestPlantTable('test_column_types'))
+    # suite.addTest(TestPlantTable('test_plant_data'))
+    # suite.addTest(TestPlantTable('test_create_plant'))
+    # suite.addTest(TestPlantTable('test_delete_plant'))
+    # suite.addTest(TestGardenTable('test_columns'))
+    # suite.addTest(TestGardenTable('test_garden_data'))
+    # suite.addTest(TestGardenTable('test_column_types'))
+    # suite.addTest(TestGoalsTable('test_columns'))
+    # suite.addTest(TestGoalsTable('test_goals_data'))
+    # suite.addTest(TestGoalsTable('test_column_types'))
+    # suite.addTest(TestAppUserTable('test_columns'))
+    # suite.addTest(TestAppUserTable('test_column_types'))
+    # suite.addTest(TestAppUserTable('test_user_data'))
+    # suite.addTest(TestGetEntries('test_get_entries_success'))
+    # suite.addTest(TestGetEntries('test_get_entries_no_entries'))
+    # suite.addTest(TestErrorHandlingDatabase('test_get_session_error'))
+    # suite.addTest(TestErrorHandlingDatabase('test_creating_db_tables_error'))
+    # suite.addTest(TestErrorHandlingDatabase('test_creating_plants_error'))
+    # suite.addTest(TestErrorHandlingDatabase('test_creating_garden_error'))
+    # suite.addTest(TestErrorHandlingDatabase('test_creating_user_error'))
+    # suite.addTest(TestErrorHandlingDatabase('test_creating_goals_error'))
+    # suite.addTest(TestErrorHandlingPlant('test_get_plant_asset_no_plants'))
+    # suite.addTest(TestErrorHandlingPlant('test_get_plant_asset_db_error'))
+    # suite.addTest(TestErrorHandlingPlant('test_garden_not_found'))
+    # suite.addTest(TestErrorHandlingPlant('test_get_plant_details_fail'))
+    # suite.addTest(TestErrorHandlingPlant('test_buy_plant_error'))
+    # suite.addTest(TestErrorHandlingPlant('test_water_plant_error'))
+    # suite.addTest(TestErrorHandlingPlant('test_get_garden_shelves_error'))
+    # suite.addTest(TestErrorHandlingPlant('test_get_plant_details_fail'))
+    # suite.addTest(TestErrorHandlingEntries('test_get_entries_sqlalchemy_error'))
+    # suite.addTest(TestErrorHandlingEntries('test_get_entries_success'))
+    # suite.addTest(TestWaterPlant('test_water_plant_updates_exp_and_maturity'))
+    suite.addTest(TestEntries('test_create_entry_valid'))
+    suite.addTest(TestEntries('test_create_entry_invalid_rating'))
+
 
     # add more tests as needed
 

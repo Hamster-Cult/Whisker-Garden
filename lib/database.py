@@ -43,4 +43,4 @@ class Entries(SQLModel, table=True):
   entry: str = Field(max_length=255, nullable=False)
   entry_date: date = Field(nullable=False)
   entry_time: time = Field(nullable=False)
-  rating: int = Field(nullable=False, min_length=0, max_length=5)
+  rating: int = Field(nullable=False, ge=1, le=5)
