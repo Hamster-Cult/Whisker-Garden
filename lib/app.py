@@ -1,7 +1,7 @@
 from typing import Annotated, Union
 from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlmodel import Field, Session, SQLModel, create_engine, select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from fastapi.middleware.cors import CORSMiddleware
 from lib.database import *
 from json import *
@@ -136,9 +136,20 @@ def assign_plant(plant: Garden, session: SessionDep):
     if not db_plant:
         raise HTTPException(status_code=404, detail="Plant not found")
     try:
-        with Session(engine) as session:
-            session.add(plant)
-            session.commit()
+        if plant.plant_exp < 0:
+            raise HTTPException(status_code=400, detail="Invalid plant experience")
+        session.add(plant)
+        session.commit()
+    except IntegrityError as e:
+        session.rollback()
+        error_message = str(e.orig)
+
+        if "UNIQUE constraint failed: garden.garden_slot" in error_message:
+            raise HTTPException(status_code=400, detail="Garden slot already occupied")
+        elif "NOT NULL constraint failed" in error_message:
+            raise HTTPException(status_code=400, detail="Missing required field")
+        else:
+            raise HTTPException(status_code=400, detail="Database integrity error")
     except SQLAlchemyError as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=f"Error buying plant: {e}")
